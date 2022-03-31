@@ -2,7 +2,7 @@ import datetime
 import json
 from typing import Optional, List
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 
 # USERS================================================================
@@ -22,3 +22,10 @@ class User(UserBase):
         orm_mode = True
 
 
+# SEASONS================================================================
+class SeasonBase(BaseModel):
+    start_date = datetime.date
+
+
+class SeasonUpdate(SeasonBase):
+    end_date = datetime.date
