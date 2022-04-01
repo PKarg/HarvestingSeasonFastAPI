@@ -1,9 +1,18 @@
 from enum import Enum
 
-from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, DATE, DateTime, DECIMAL
+from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, DATE, DateTime, DECIMAL, Table
 from sqlalchemy.orm import relationship
 
 from .database import Base
+
+
+harvests_employees_asoc_tab = Table('association', Base.metadata,
+                                    Column('harvest_id',
+                                           ForeignKey('harvests.id'),
+                                           primary_key=True),
+                                    Column('employee_id',
+                                           ForeignKey('employees.id'),
+                                           primary_key=True))
 
 
 class Fruit(str, Enum):
@@ -55,7 +64,10 @@ class Harvest(Base):
 
     season = relationship("Season", back_populates="harvests")
 
-    employees = relationship("Employee", back_populates="harvest")
+    employees = relationship("Employee",
+                             secondary=harvests_employees_asoc_tab,
+                             back_populates="harvests")
+
     workdays = relationship("Workday", back_populates="harvest")
 
 
@@ -82,6 +94,10 @@ class Employee(Base):
     end_date = Column(DATE)
 
     season = relationship("Season", back_populates="employees")
+
+    harvests = relationship("Harvest",
+                            secondary=harvests_employees_asoc_tab,
+                            back_populates="employees")
 
     workdays = relationship("Workday", back_populates="employee")
 
