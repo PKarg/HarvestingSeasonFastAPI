@@ -54,6 +54,14 @@ class SeasonResponse(SeasonBase):
     year: int
     end_date: Optional[datetime.date]
     owner_id: int
+    harvests: Optional[list[dict]]
+
+    class Config:
+        orm_mode = True
+
+
+class SeasonListResponse(BaseModel):
+    seasons: list[SeasonResponse]
 
     class Config:
         orm_mode = True

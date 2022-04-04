@@ -16,7 +16,7 @@ from data.database import engine
 from routers import seasons
 
 
-#Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 app.include_router(seasons.router)
 security = HTTPBasic()
@@ -47,17 +47,17 @@ async def openapi(username: str = Depends(get_current_username)):
 @app.post("/user")
 async def create_new_user(user: sc.UserCreate, db: Session = Depends(get_db),
                           username: str = Depends(get_current_username)):
-    db_user = db.query(User).filter(User.username == user.username).first()
-    if db_user:
+    user_m = db.query(User).filter(User.username == user.username).first()
+    if user_m:
         raise HTTPException(status_code=400, detail="User already exists")
     else:
         hashed_password = get_password_hash(user.password)
-        db_user = User(username=user.username,
-                       hashed_password=hashed_password)
-        db.add(db_user)
+        user_m = User(username=user.username,
+                      hashed_password=hashed_password)
+        db.add(user_m)
         db.commit()
-        db.refresh(db_user)
-    return db_user
+        db.refresh(user_m)
+    return user_m
 
 
 @app.post("/token")
