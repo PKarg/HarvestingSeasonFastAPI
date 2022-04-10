@@ -1,4 +1,5 @@
 import datetime
+import decimal as dec
 import json
 from typing import Optional, List
 
@@ -24,7 +25,7 @@ class User(UserBase):
         orm_mode = True
 
 
-# SEASONS================================================================
+# SEASONS ================================================================
 class SeasonBase(BaseModel):
     start_date: Optional[datetime.date]
 
@@ -54,14 +55,58 @@ class SeasonResponse(SeasonBase):
     year: int
     end_date: Optional[datetime.date]
     owner_id: int
-    harvests: Optional[list[dict]]
+    harvests: Optional[List[dict]]
+    employees: Optional[List[dict]]
 
     class Config:
         orm_mode = True
 
 
+# TODO update response model
 class SeasonListResponse(BaseModel):
     seasons: list[SeasonResponse]
 
     class Config:
         orm_mode = True
+
+
+# HARVESTS && EMPLOYEES && WORKDAYS ================================================================
+class HarvestAssoc(BaseModel):
+    id: int
+
+
+class EmployeeAssoc(BaseModel):
+    id: int
+
+
+class HarvestCreate(BaseModel):
+    # TODO list of workdays
+    price: dec.Decimal
+    harvested: dec.Decimal
+    date: datetime.date
+    fruit: models.Fruit
+
+    employees: Optional[List[EmployeeAssoc]] = None
+
+    @validator("price", pre=True, always=True)
+    def check_decimals_price(cls, price: dec.Decimal):
+        if dec.Decimal(price).same_quantum(dec.Decimal("1.0")):
+            price = price
+            return price
+        else:
+            price = dec.Decimal(price).quantize(dec.Decimal("1.0"))
+            return price
+
+
+class EmployeeCreate(BaseModel):
+    name: str
+    start_date: datetime.date
+
+
+class HarvestResponse(HarvestCreate):
+    id: int
+    season_id: int
+
+
+class EmployeeResponse(BaseModel):
+    pass

@@ -1,8 +1,8 @@
 import datetime
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
-from data import models
+from data import models, schemas as sc
 
 
 def season_create(db: Session, user: models.User, start_date: datetime.date) -> models.Season:
@@ -17,26 +17,53 @@ def season_create(db: Session, user: models.User, start_date: datetime.date) -> 
 
 
 def season_get_all(db: Session, user: models.User) -> list[models.Season]:
-    seasons = db.query(models.Season).filter(models.Season.owner_id == user.id).all()
-    seasons = [s.__dict__ for s in seasons]
-
-    for season in seasons:
-        season.pop("_sa_instance_state")
-        try:
-            harvests = []
-            for harvest in season["harvests"]:
-                harvest = harvest.__dict__
-                harvest.pop("_sa_instance_state")
-                harvests.append(harvest)
-            season["harvests"] = harvests
-        except KeyError:
-            season["harvests"] = None
-    seasons = {"seasons": seasons}
+    seasons: list[models.Season] = db.query(models.Season)\
+        .options(
+        joinedload(models.Season.employees),
+        joinedload(models.Season.harvests))\
+        .filter(models.Season.owner_id == user.id).all()
     return seasons
 
 
-def season_get_year(db: Session, user: models.User, year: int) -> models.Season:
+def season_get_by_year(db: Session, user: models.User, year: int) -> models.Season:
     season = db.query(models.Season)\
+        .options(
+        joinedload(models.Season.employees),
+        joinedload(models.Season.harvests))\
         .filter(models.Season.owner_id == user.id)\
         .filter(models.Season.year == year).first()
     return season
+
+
+def harvest_create(db: Session, user: models.User, season: models.Season,
+                   data: sc.HarvestCreate) -> models.Harvest:
+    # TODO list of employees when creating a harvest
+    harvest = models.Harvest(
+        date=data.date,
+        price=data.price,
+        fruit=data.fruit,
+        harvested=data.harvested,
+        season=season,
+        owner_id=user.id
+    )
+    harvest.season = season
+    db.add(harvest)
+    db.commit()
+    db.refresh(harvest)
+    return harvest
+
+
+def employee_create(db: Session, user: models.User, season: models.Season,
+                    data: sc.EmployeeCreate) -> models.Employee:
+    employee = models.Employee(
+        employer_id=user.id,
+        name=data.name,
+        season_id=season.id,
+        start_date=data.start_date
+    )
+    employee.season = season
+    db.add(employee)
+    db.commit()
+    db.refresh(employee)
+    return employee
+

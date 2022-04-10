@@ -16,7 +16,7 @@ from data.database import engine
 from routers import seasons
 
 
-# Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 app.include_router(seasons.router)
 security = HTTPBasic()

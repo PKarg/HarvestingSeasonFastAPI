@@ -1,6 +1,7 @@
 from enum import Enum
 
-from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, DATE, DateTime, DECIMAL, Table
+from sqlalchemy import Column, Integer, ForeignKey, String,\
+    Boolean, DATE, DECIMAL, Table, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -45,6 +46,8 @@ class Season(Base):
     end_date = Column(DATE)
     owner_id = Column(Integer, ForeignKey("users.id"))
 
+    UniqueConstraint(year, owner_id, name='u_yo')
+
     owner = relationship("User", back_populates="seasons")
 
     harvests = relationship("Harvest", back_populates="season")
@@ -57,10 +60,11 @@ class Harvest(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     fruit = Column(String, nullable=False)
+    harvested = Column(DECIMAL(5, 1), nullable=False)
     date = Column(DATE, nullable=False)
-    harvested = Column(DECIMAL(1), nullable=False)
-    price = Column(DECIMAL(1), nullable=False)
+    price = Column(DECIMAL(5, 1), nullable=False)
     season_id = Column(Integer, ForeignKey("seasons.id"))
+    owner_id = Column(Integer, ForeignKey("users.id"))
 
     season = relationship("Season", back_populates="harvests")
 
@@ -109,8 +113,8 @@ class Workday(Base):
     employee_id = Column(Integer, ForeignKey("employees.id"))
     harvest_id = Column(Integer, ForeignKey("harvests.id"))
     fruit = Column(String, nullable=False)
-    harvested = Column(DECIMAL(1))
-    pay_per_kg = Column(DECIMAL(1))
+    harvested = Column(DECIMAL(5, 1))
+    pay_per_kg = Column(DECIMAL(5, 1))
 
     employee = relationship("Employee", back_populates="workdays")
     harvest = relationship("Harvest", back_populates="workdays")
