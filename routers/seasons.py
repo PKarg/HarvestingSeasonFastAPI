@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -12,17 +14,15 @@ router = APIRouter(
 )
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=sc.SeasonResponse,
-             response_model_exclude_none=True)
+@router.post("/", status_code=status.HTTP_201_CREATED)
 def seasons_post(season_data: sc.SeasonBase,
-                user: mod.User = Depends(get_current_user),
-                db: Session = Depends(get_db)):
+                 user: mod.User = Depends(get_current_user),
+                 db: Session = Depends(get_db)):
     season_m_new = crud.season_create(db, user, season_data.start_date)
     return season_m_new
 
 
-@router.get("/", status_code=status.HTTP_200_OK,
-            response_model_exclude_none=True)
+@router.get("/", status_code=status.HTTP_200_OK)
 def seasons_get_all(user: mod.User = Depends(get_current_user),
                     db: Session = Depends(get_db)):
     seasons_m_all = crud.season_get_all(db, user)
@@ -30,7 +30,6 @@ def seasons_get_all(user: mod.User = Depends(get_current_user),
 
 
 # TODO add status code
-# TODO add response model
 @router.get("/{year}")
 def seasons_get_by_year(year: int,
                        user: mod.User = Depends(get_current_user),
@@ -40,8 +39,7 @@ def seasons_get_by_year(year: int,
 
 
 # TODO add status code
-# TODO add response model
-@router.post("/{year}/harvests")
+@router.post("/{year}/harvests", status_code=status.HTTP_201_CREATED)
 def harvests_post(year: int,
                   harvest_data: sc.HarvestCreate,
                   user: mod.User = Depends(get_current_user),
@@ -52,7 +50,6 @@ def harvests_post(year: int,
 
 
 # TODO add status code
-# TODO add response model
 @router.post("/{year}/employees")
 def harvests_post(year: int,
                   employee_data: sc.EmployeeCreate,
