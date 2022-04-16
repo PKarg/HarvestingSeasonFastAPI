@@ -22,24 +22,25 @@ def seasons_post(season_data: sc.SeasonBase,
     return season_m_new
 
 
-@router.get("/", status_code=status.HTTP_200_OK)
+@router.get("/", status_code=status.HTTP_200_OK,
+            response_model=List[sc.SeasonResponse])
 def seasons_get_all(user: mod.User = Depends(get_current_user),
                     db: Session = Depends(get_db)):
     seasons_m_all = crud.season_get_all(db, user)
     return seasons_m_all
 
 
-# TODO add status code
-@router.get("/{year}")
+@router.get("/{year}", status_code=status.HTTP_200_OK,
+            response_model=sc.SeasonResponse)
 def seasons_get_by_year(year: int,
-                       user: mod.User = Depends(get_current_user),
-                       db: Session = Depends(get_db)):
+                        user: mod.User = Depends(get_current_user),
+                        db: Session = Depends(get_db)):
     season_m = crud.season_get_by_year(db, user, year)
     return season_m
 
 
-# TODO add status code
-@router.post("/{year}/harvests", status_code=status.HTTP_201_CREATED)
+@router.post("/{year}/harvests", status_code=status.HTTP_201_CREATED,
+             response_model=sc.HarvestResponse)
 def harvests_post(year: int,
                   harvest_data: sc.HarvestCreate,
                   user: mod.User = Depends(get_current_user),
@@ -49,12 +50,30 @@ def harvests_post(year: int,
     return harvest_m_new
 
 
-# TODO add status code
-@router.post("/{year}/employees")
-def harvests_post(year: int,
+@router.get("{year}/harvests", status_code=status.HTTP_200_OK,
+            response_model=List[sc.HarvestResponse])
+def harvests_get(year: int,
+                 user: mod.User = Depends(get_current_user),
+                 db: Session = Depends(get_db)):
+    season_m = crud.season_get_by_year(db, user, year)
+    return season_m.harvests
+
+
+@router.post("/{year}/employees", status_code=status.HTTP_201_CREATED,
+             response_model=sc.EmployeeResponse)
+def employees_post(year: int,
                   employee_data: sc.EmployeeCreate,
                   user: mod.User = Depends(get_current_user),
                   db: Session = Depends(get_db)):
     season_m = crud.season_get_by_year(db, user, year)
     harvest_m_new = crud.employee_create(db, user, season_m, employee_data)
     return harvest_m_new
+
+
+@router.get("{year}/employees", status_code=status.HTTP_200_OK,
+            response_model=List[sc.EmployeeResponse])
+def harvests_get(year: int,
+                 user: mod.User = Depends(get_current_user),
+                 db: Session = Depends(get_db)):
+    season_m = crud.season_get_by_year(db, user, year)
+    return season_m.employees

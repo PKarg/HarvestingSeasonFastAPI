@@ -34,13 +34,20 @@ class EmployeeAssoc(BaseModel):
     id: int
 
 
-class HarvestCreate(BaseModel):
-    # TODO list of workdays
+class HarvestBase(BaseModel):
     price: dec.Decimal
     harvested: dec.Decimal
     date: datetime.date
     fruit: models.Fruit
 
+
+class EmployeeBase(BaseModel):
+    name: str
+    start_date: datetime.date
+
+
+class HarvestCreate(HarvestBase):
+    # TODO list of workdays
     employees: Optional[List[EmployeeAssoc]] = None
 
     @validator("price", pre=True, always=True)
@@ -53,13 +60,12 @@ class HarvestCreate(BaseModel):
             return price
 
 
-class EmployeeCreate(BaseModel):
+class EmployeeCreate(EmployeeBase):
     # TODO list of workdays
-    name: str
-    start_date: datetime.date
+    harvests: Optional[List[HarvestAssoc]]
 
 
-class HarvestResponse(HarvestCreate):
+class HarvestResponse(HarvestBase):
     id: int
     season_id: int
     owner_id: int
@@ -68,11 +74,25 @@ class HarvestResponse(HarvestCreate):
         orm_mode = True
 
 
-class EmployeeResponse(EmployeeCreate):
+class EmployeeResponse(EmployeeBase):
     id: int
     season_id: int
     employer_id = int
     end_date: Optional[datetime.date] = None
+
+    class Config:
+        orm_mode = True
+
+
+class HarvestResponseEmployees(HarvestResponse):
+    employees: Optional[List[EmployeeResponse]] = None
+
+    class Config:
+        orm_mode = True
+
+
+class EmployeeResponseHarvests(EmployeeResponse):
+    harvests: Optional[List[HarvestResponse]] = None
 
     class Config:
         orm_mode = True
@@ -108,8 +128,8 @@ class SeasonResponse(SeasonBase):
     year: int
     end_date: Optional[datetime.date]
     owner_id: int
-    harvests: Optional[List[HarvestResponse]] = []
-    employees: Optional[List[EmployeeResponse]] = []
+    harvests: Optional[List[HarvestResponse]] = None
+    employees: Optional[List[EmployeeResponse]] = None
 
     class Config:
         orm_mode = True
