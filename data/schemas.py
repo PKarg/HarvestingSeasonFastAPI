@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field, validator
 from . import models
 
 
+# TODO add docs examples to schemas
+
 # USERS================================================================
 class UserBase(BaseModel):
     username: str
@@ -26,14 +28,7 @@ class User(UserBase):
 
 
 # HARVESTS && EMPLOYEES && WORKDAYS ================================================================
-class HarvestAssoc(BaseModel):
-    id: int
-
-
-class EmployeeAssoc(BaseModel):
-    id: int
-
-
+# TODO add workday schemas
 class HarvestBase(BaseModel):
     price: dec.Decimal
     harvested: dec.Decimal
@@ -48,7 +43,7 @@ class EmployeeBase(BaseModel):
 
 class HarvestCreate(HarvestBase):
     # TODO list of workdays
-    employees: Optional[List[EmployeeAssoc]] = None
+    employees: Optional[List[int]] = None
 
     @validator("price", pre=True, always=True)
     def check_decimals_price(cls, price: dec.Decimal):
@@ -62,7 +57,7 @@ class HarvestCreate(HarvestBase):
 
 class EmployeeCreate(EmployeeBase):
     # TODO list of workdays
-    harvests: Optional[List[HarvestAssoc]]
+    harvests: Optional[List[int]]
 
 
 class HarvestResponse(HarvestBase):

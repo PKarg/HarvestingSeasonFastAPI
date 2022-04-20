@@ -66,6 +66,8 @@ class Harvest(Base):
     season_id = Column(Integer, ForeignKey("seasons.id"))
     owner_id = Column(Integer, ForeignKey("users.id"))
 
+    UniqueConstraint(date, fruit, name='u_df')
+
     season = relationship("Season", back_populates="harvests")
 
     employees = relationship("Employee",

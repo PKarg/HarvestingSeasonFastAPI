@@ -16,6 +16,8 @@ from data.database import engine
 from routers import seasons
 
 
+# TODO add tests for existing endpoints
+
 Base.metadata.create_all(bind=engine)
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 app.include_router(seasons.router)
