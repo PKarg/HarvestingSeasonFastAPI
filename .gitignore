@@ -133,3 +133,4 @@ dmypy.json
 testernotes.ipynb
 *.drawio
 .idea/*
+populate_db.py

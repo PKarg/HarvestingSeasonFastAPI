@@ -39,7 +39,7 @@ def seasons_get_by_year(year: int,
     return season_m
 
 
-@router.patch("/{year", status_code=status.HTTP_200_OK,
+@router.patch("/{year}", status_code=status.HTTP_200_OK,
               response_model=sc.SeasonResponse)
 def seasons_update(year: int, season_data: sc.SeasonUpdate,
                    user: mod.User = Depends(get_current_user),
@@ -47,6 +47,15 @@ def seasons_update(year: int, season_data: sc.SeasonUpdate,
     season_m = crud.season_get_by_year(db, user, year)
     season_m_updated = crud.season_update(db, season_m, season_data.start_date, season_data.end_date)
     return season_m_updated
+
+
+@router.delete("/{year}", status_code=status.HTTP_200_OK)
+def seasons_update(year: int,
+                   user: mod.User = Depends(get_current_user),
+                   db: Session = Depends(get_db)):
+    season_m = crud.season_get_by_year(db, user, year)
+    db.delete(season_m)
+    db.commit()
 
 
 @router.post("/{year}/harvests", status_code=status.HTTP_201_CREATED,

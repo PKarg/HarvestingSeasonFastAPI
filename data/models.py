@@ -50,9 +50,9 @@ class Season(Base):
 
     owner = relationship("User", back_populates="seasons")
 
-    harvests = relationship("Harvest", back_populates="season")
-    employees = relationship("Employee", back_populates="season")
-    expenses = relationship("Expense", back_populates="season")
+    harvests = relationship("Harvest", back_populates="season", cascade="all, delete")
+    employees = relationship("Employee", back_populates="season", cascade="all, delete")
+    expenses = relationship("Expense", back_populates="season", cascade="all, delete")
 
 
 class Harvest(Base):
@@ -74,7 +74,7 @@ class Harvest(Base):
                              secondary=harvests_employees_asoc_tab,
                              back_populates="harvests")
 
-    workdays = relationship("Workday", back_populates="harvest")
+    workdays = relationship("Workday", back_populates="harvest", cascade="all, delete")
 
 
 class Expense(Base):
@@ -105,7 +105,7 @@ class Employee(Base):
                             secondary=harvests_employees_asoc_tab,
                             back_populates="employees")
 
-    workdays = relationship("Workday", back_populates="employee")
+    workdays = relationship("Workday", back_populates="employee", cascade="all, delete")
 
 
 class Workday(Base):
