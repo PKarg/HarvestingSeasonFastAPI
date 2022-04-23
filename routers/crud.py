@@ -86,9 +86,22 @@ def employee_create(db: Session, user: models.User, season: models.Season,
         season_id=season.id,
         start_date=data.start_date
     )
-    employee.season = season
     db.add(employee)
     db.commit()
     db.refresh(employee)
     return employee
+
+
+def expense_create(db: Session, season: models.Season,
+                   data: sc.ExpenseCreate) -> models.Expense:
+    expense = models.Expense(
+        type=data.type,
+        date=data.date,
+        amount=data.amount,
+        season_id=season.id
+    )
+    db.add(expense)
+    db.commit()
+    db.refresh(expense)
+    return expense
 

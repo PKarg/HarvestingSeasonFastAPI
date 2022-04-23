@@ -36,6 +36,15 @@ class HarvestBase(BaseModel):
     date: datetime.date
     fruit: models.Fruit
 
+    @validator("harvested", pre=True, always=True)
+    def check_decimals_harvested(cls, harvested: dec.Decimal):
+        if dec.Decimal(harvested).same_quantum(dec.Decimal("1.0")):
+            harvested = harvested
+            return harvested
+        else:
+            harvested = dec.Decimal(harvested).quantize(dec.Decimal("1.0"))
+            return harvested
+
 
 class EmployeeBase(BaseModel):
     name: str
@@ -100,6 +109,15 @@ class ExpenseCreate(BaseModel):
     date: datetime.date
     amount: decimal.Decimal
     season_id: int
+
+    @validator("amount", pre=True, always=True)
+    def check_decimals_expense(cls, amount: dec.Decimal):
+        if dec.Decimal(amount).same_quantum(dec.Decimal("1.0")):
+            amount = amount
+            return amount
+        else:
+            amount = dec.Decimal(amount).quantize(dec.Decimal("1.0"))
+            return amount
 
 
 class ExpenseResponse(ExpenseCreate):
