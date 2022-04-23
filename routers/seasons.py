@@ -65,7 +65,19 @@ def harvests_post(year: int,
                   user: mod.User = Depends(get_current_user),
                   db: Session = Depends(get_db)):
     season_m = crud.season_get_by_year(db, user, year)
-    harvest_m_new = crud.harvest_create(db, user, season_m, harvest_data)
+
+    if season_m.start_date <= harvest_data.date:
+        if season_m.end_date:
+            if season_m.end_date >= harvest_data.date:
+                harvest_m_new = crud.harvest_create(db, user, season_m.id, harvest_data)
+            else:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail="Harvest date can't be after the season end date")
+        else:
+            harvest_m_new = crud.harvest_create(db, user, season_m, harvest_data)
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Harvest date can't be before the season start date")
     return harvest_m_new
 
 

@@ -55,22 +55,21 @@ def season_update(db: Session, season: models.Season,
     return season
 
 
-def harvest_create(db: Session, user: models.User, season: models.Season,
+def harvest_create(db: Session, user: models.User, season_id: int,
                    data: sc.HarvestCreate) -> models.Harvest:
+
     harvest = models.Harvest(
         date=data.date,
         price=data.price,
         fruit=data.fruit,
         harvested=data.harvested,
-        season=season,
+        season_id=season_id,
         owner_id=user.id
     )
-    harvest.season = season
-
     if data.employees:
         harvest.employees = db.query(models.Employee)\
             .filter(models.Employee.id.in_(data.employees))\
-            .filter(models.Employee.season_id == season.id)\
+            .filter(models.Employee.season_id == season_id)\
             .all()
 
     db.add(harvest)

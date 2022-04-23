@@ -1,4 +1,5 @@
 import datetime
+import decimal
 import decimal as dec
 import json
 from typing import Optional, List
@@ -93,6 +94,21 @@ class EmployeeResponseHarvests(EmployeeResponse):
         orm_mode = True
 
 
+# EXPENSES ===============================================================
+class ExpenseCreate(BaseModel):
+    type: str
+    date: datetime.date
+    amount: decimal.Decimal
+    season_id: int
+
+
+class ExpenseResponse(ExpenseCreate):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
 # SEASONS ================================================================
 class SeasonBase(BaseModel):
     start_date: Optional[datetime.date]
@@ -125,6 +141,7 @@ class SeasonResponse(SeasonBase):
     owner_id: int
     harvests: Optional[List[HarvestResponse]] = None
     employees: Optional[List[EmployeeResponse]] = None
+    expenses: Optional[List[ExpenseResponse]] = None
 
     class Config:
         orm_mode = True
