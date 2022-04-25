@@ -83,7 +83,7 @@ class Expense(Base):
     id = Column(Integer, primary_key=True, index=True)
     type = Column(String, nullable=False)
     date = Column(DATE, nullable=False)
-    amount = Column(DECIMAL(1), nullable=False)
+    amount = Column(DECIMAL(6, 1), nullable=False)
     season_id = Column(ForeignKey("seasons.id"))
 
     season = relationship("Season", back_populates="expenses")

@@ -26,7 +26,7 @@ def seasons_post(season_data: sc.SeasonBase,
             response_model=List[sc.SeasonResponse])
 def seasons_get_all(user: m.User = Depends(get_current_user),
                     db: Session = Depends(get_db)):
-    seasons_m_all = crud.season_get_all(db, user)
+    seasons_m_all = crud.season_get(db, user)
     return seasons_m_all
 
 

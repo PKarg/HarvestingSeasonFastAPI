@@ -108,7 +108,6 @@ class ExpenseCreate(BaseModel):
     type: str
     date: datetime.date
     amount: decimal.Decimal
-    season_id: int
 
     @validator("amount", pre=True, always=True)
     def check_decimals_expense(cls, amount: dec.Decimal):
@@ -122,6 +121,7 @@ class ExpenseCreate(BaseModel):
 
 class ExpenseResponse(ExpenseCreate):
     id: int
+    season_id: int
 
     class Config:
         orm_mode = True
