@@ -18,6 +18,8 @@ router = APIRouter(
             response_model=List[sc.HarvestResponse])
 def harvests_get_all(user: m.User = Depends(get_current_user),
                      db: Session = Depends(get_db),
+                     year: Optional[str] = Query(None, min_length=4, max_length=4, regex=r"^ *\d[\d ]*$"),
+                     season_id: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                      after: Optional[str] = Query(None),
                      before: Optional[str] = Query(None),
                      fruit: Optional[str] = Query(None, min_length=5, max_length=20),
@@ -26,8 +28,8 @@ def harvests_get_all(user: m.User = Depends(get_current_user),
                      h_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                      h_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$")
                      ):
-    harvests_m_all: List[m.Harvest] = crud.harvest_get(db, user, after=after, before=before, fruit=fruit,
-                                                       p_more=p_more, p_less=p_less, h_more=h_more, h_less=h_less)
+    harvests_m_all: List[m.Harvest] = crud.harvest_get(db, user, after=after, before=before, fruit=fruit, year=year,
+                                                       season_id=season_id, p_more=p_more, p_less=p_less, h_more=h_more, h_less=h_less)
     return harvests_m_all
 
 
