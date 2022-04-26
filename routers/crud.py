@@ -1,9 +1,35 @@
 import datetime
-from typing import Optional
+import decimal
+import traceback
+from typing import Optional, List
 
+from fastapi import HTTPException, status
+from sqlalchemy import extract
 from sqlalchemy.orm import Session, joinedload
 
 from data import models as m, schemas as sc
+
+
+def validate_date_qp(qp: str) -> datetime.date:
+    try:
+        date = datetime.date.fromisoformat(qp)
+        return date
+    except ValueError as e:
+        print(e)
+        print(traceback.format_exc())
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=str(e))
+
+
+def validate_fruit_qp(qp: str) -> m.Fruit:
+    try:
+        fruit = m.Fruit(qp.lower())
+        return fruit.value
+    except ValueError as e:
+        print(e)
+        print(traceback.format_exc())
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=str(e))
 
 
 def season_create(db: Session, user: m.User,
@@ -22,28 +48,23 @@ def season_create(db: Session, user: m.User,
 
 
 def season_get(db: Session, user: m.User,
-               after: Optional[datetime.date] = None,
-               before: Optional[datetime.date] = None) -> list[m.Season]:
+               year: Optional[int] = None,
+               after: Optional[str] = None,
+               before: Optional[str] = None) -> List[m.Season]:
     seasons: db.query = db.query(m.Season)\
         .options(
         joinedload(m.Season.employees),
         joinedload(m.Season.harvests))\
         .filter(m.Season.owner_id == user.id)
+    if year:
+        seasons = seasons.filter(m.Season.year == year)
     if after:
+        after = validate_date_qp(after)
         seasons = seasons.filter(m.Season.start_date > after)
     if before:
-        seasons = seasons.filter(m.Season.start_date < after)
+        before = validate_date_qp(before)
+        seasons = seasons.filter(m.Season.start_date > before)
     return seasons.all()
-
-
-def season_get_by_year(db: Session, user: m.User, year: int) -> m.Season:
-    season = db.query(m.Season)\
-        .options(
-        joinedload(m.Season.employees),
-        joinedload(m.Season.harvests))\
-        .filter(m.Season.owner_id == user.id)\
-        .filter(m.Season.year == year).first()
-    return season
 
 
 def season_update(db: Session, season: m.Season,
@@ -85,10 +106,46 @@ def harvest_create(db: Session, user: m.User, season_id: int,
 
 
 def harvest_get(db: Session, user: m.User,
+                id: Optional[int] = None,
                 year: Optional[int] = None,
                 season_id: Optional[int] = None,
-                ):
-    pass
+                after: Optional[str] = None,
+                before: Optional[str] = None,
+                fruit: Optional[str] = None,
+                p_more: Optional[str] = None,
+                p_less: Optional[str] = None,
+                h_more: Optional[str] = None,
+                h_less: Optional[str] = None) -> List[m.Harvest]:
+    # TODO add order by options
+    harvests = db.query(m.Harvest).filter(m.Harvest.owner_id == user.id)
+    if id:
+        harvests = harvests.filter(m.Harvest.id == id)
+    if year:
+        harvests = harvests.filter(extract('year', m.Harvest.date) == year)
+    if season_id:
+        harvests = harvests.filter(m.Harvest.season_id == season_id)
+    if after:
+        after = validate_date_qp(after)
+        harvests = harvests.filter(m.Harvest.date > after)
+    if before:
+        before = validate_date_qp(before)
+        harvests = harvests.filter(m.Harvest.date < before)
+    if fruit:
+        fruit = validate_fruit_qp(fruit)
+        harvests = harvests.filter(m.Harvest.fruit == fruit)
+    if p_more:
+        p_more = int(p_more)
+        harvests = harvests.filter(m.Harvest.price > p_more)
+    if p_less:
+        p_less = int(p_less)
+        harvests = harvests.filter(m.Harvest.price < p_less)
+    if h_more:
+        h_more = int(h_more)
+        harvests = harvests.filter(m.Harvest.harvested > h_more)
+    if h_less:
+        h_less = int(h_less)
+        harvests = harvests.filter(m.Harvest.harvested < h_less)
+    return harvests.all()
 
 
 def employee_create(db: Session, user: m.User, season: m.Season,
