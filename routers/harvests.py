@@ -43,3 +43,16 @@ def harvests_get_all(id: int,
         return harvests_m
     except IndexError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Object with given id doesn't exist")
+
+
+@router.delete("/{id}", status_code=status.HTTP_200_OK,
+               response_model=None)
+def harvests_delete(id: int,
+                    user: m.User = Depends(get_current_user),
+                    db: Session = Depends(get_db)):
+    harvest_m = crud.harvest_get(db, user, id=id)[0]
+    db.delete(harvest_m)
+    db.commit()
+
+
+
