@@ -55,4 +55,8 @@ def harvests_delete(id: int,
     db.commit()
 
 
-
+@router.put("/{id}", status_code=status.HTTP_202_ACCEPTED,
+            response_model=sc.HarvestResponse)
+def harvests_put():
+    # TODO implement put functionality for /harvests
+    pass

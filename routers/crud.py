@@ -82,21 +82,39 @@ def season_update(db: Session, season: m.Season,
     return season
 
 
-def harvest_create(db: Session, user: m.User, season_id: int,
+def harvest_create(db: Session, user: m.User, year: int,
                    data: sc.HarvestCreate) -> m.Harvest:
+
+    season_m: m.Season = db.query(m.Season).filter(m.Season.year == year)\
+        .filter(m.Season.owner_id == user.id).first()
+
+    if season_m.end_date:
+        if not (season_m.start_date <= data.date <= season_m.end_date):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="Harvest date has to be between season start and end")
+    else:
+        if not season_m >= season_m.start_date:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="Harvest date can't be before season start date")
 
     harvest = m.Harvest(
         date=data.date,
         price=data.price,
         fruit=data.fruit,
         harvested=data.harvested,
-        season_id=season_id,
+        season_id=season_m.id,
         owner_id=user.id
     )
     if data.employees:
         harvest.employees = db.query(m.Employee)\
             .filter(m.Employee.id.in_(data.employees))\
-            .filter(m.Employee.season_id == season_id)\
+            .filter(m.Employee.season_id == season_m.id)\
+            .all()
+
+    if data.workdays:
+        harvest.workdays = db.query(m.Workday) \
+            .filter(m.Employee.id.in_(data.employees)) \
+            .filter(m.Employee.season_id == season_m.id) \
             .all()
 
     db.add(harvest)

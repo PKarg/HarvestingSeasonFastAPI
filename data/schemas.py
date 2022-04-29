@@ -30,6 +30,11 @@ class User(UserBase):
 
 # HARVESTS && EMPLOYEES && WORKDAYS ================================================================
 # TODO add workday schemas
+
+class WorkdayCreate(BaseModel):
+    pass
+
+
 class HarvestBase(BaseModel):
     price: dec.Decimal
     harvested: dec.Decimal
@@ -45,16 +50,6 @@ class HarvestBase(BaseModel):
             harvested = dec.Decimal(harvested).quantize(dec.Decimal("1.0"))
             return harvested
 
-
-class EmployeeBase(BaseModel):
-    name: str
-    start_date: datetime.date
-
-
-class HarvestCreate(HarvestBase):
-    # TODO list of workdays
-    employees: Optional[List[int]] = None
-
     @validator("price", pre=True, always=True)
     def check_decimals_price(cls, price: dec.Decimal):
         if dec.Decimal(price).same_quantum(dec.Decimal("1.0")):
@@ -65,18 +60,30 @@ class HarvestCreate(HarvestBase):
             return price
 
 
-class EmployeeCreate(EmployeeBase):
-    # TODO list of workdays
-    harvests: Optional[List[int]]
+class HarvestCreate(HarvestBase):
+    employees: Optional[List[int]] = None
+    workdays: Optional[List[WorkdayCreate]] = None
 
 
-class HarvestResponse(HarvestBase):
+class HarvestUpdate(HarvestCreate):
     id: int
     season_id: int
+
+
+class HarvestResponse(HarvestUpdate):
     owner_id: int
 
     class Config:
         orm_mode = True
+
+
+class EmployeeBase(BaseModel):
+    name: str
+    start_date: datetime.date
+
+
+class EmployeeCreate(EmployeeBase):
+    harvests: Optional[List[int]]
 
 
 class EmployeeResponse(EmployeeBase):
