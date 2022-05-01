@@ -155,6 +155,10 @@ class WorkdayUpdate(WorkdayCreate):
     pay_per_kg: Optional[decimal.Decimal] = None
 
 
+class WorkdayResponse(WorkdayCreate):
+    id: int
+
+
 # RESPONSES WITH SUB-COLLECTIONS ======================================================
 class HarvestResponseEmployees(HarvestResponse):
     employees: Optional[List[EmployeeResponse]] = None

@@ -55,8 +55,29 @@ def harvests_delete(id: int,
     db.commit()
 
 
-@router.put("/{id}", status_code=status.HTTP_202_ACCEPTED,
+@router.put("/{id}", status_code=status.HTTP_200_OK,
             response_model=sc.HarvestResponse)
-def harvests_put():
-    # TODO implement put functionality for /harvests
+def harvests_change():
+    # TODO implement
+    pass
+
+
+@router.patch("/{id}", status_code=status.HTTP_200_OK,
+              response_model=sc.HarvestResponse)
+def harvests_update():
+    # TODO implement
+    pass
+
+
+@router.get("/{id}/employees", status_code=status.HTTP_200_OK,
+            response_model=List[sc.EmployeeResponse])
+def harvests_get_employees():
+    # TODO implement /harvests
+    pass
+
+
+@router.get("/{id}/workdays", status_code=status.HTTP_200_OK,
+            response_model=List[sc.WorkdayResponse])
+def harvests_get_employees():
+    # TODO implement /harvests
     pass
