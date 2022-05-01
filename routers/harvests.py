@@ -35,9 +35,9 @@ def harvests_get_all(user: m.User = Depends(get_current_user),
 
 @router.get("/{h_id}", status_code=status.HTTP_200_OK,
             response_model=sc.HarvestResponse)
-def harvests_get_all(h_id: int,
-                     user: m.User = Depends(get_current_user),
-                     db: Session = Depends(get_db)):
+def harvests_get_id(h_id: int,
+                    user: m.User = Depends(get_current_user),
+                    db: Session = Depends(get_db)):
     try:
         harvests_m: m.Harvest = crud.harvest_get(db, user, id=h_id)[0]
         return harvests_m

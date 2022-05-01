@@ -13,7 +13,7 @@ from data import schemas as sc
 from data.models import Base, User
 from auth import authenticate_user, token_exception, create_access_token, get_password_hash
 from data.database import engine
-from routers import seasons, harvests, employees, expenses
+from routers import seasons, harvests, employees, expenses, workdays
 
 
 # TODO add tests for existing endpoints
@@ -22,6 +22,9 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 app.include_router(seasons.router)
 app.include_router(harvests.router)
+app.include_router(employees.router)
+app.include_router(expenses.router)
+app.include_router(workdays.router)
 security = HTTPBasic()
 
 

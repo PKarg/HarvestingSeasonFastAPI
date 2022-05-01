@@ -12,13 +12,12 @@ from data import models as m, schemas as sc
 
 def validate_date_qp(qp: str) -> datetime.date:
     try:
-        date = datetime.date.fromisoformat(qp)
-        return date
+        return datetime.date.fromisoformat(qp)
     except ValueError as e:
         print(e)
         print(traceback.format_exc())
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            detail=str(e))
+                            detail=str(e)) from e
 
 
 def validate_fruit_qp(qp: str) -> m.Fruit:
@@ -29,7 +28,10 @@ def validate_fruit_qp(qp: str) -> m.Fruit:
         print(e)
         print(traceback.format_exc())
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            detail=str(e))
+                            detail=str(e)) from e
+
+
+# SEASONS ===============================================================================================
 
 
 def season_create(db: Session, user: m.User,
@@ -82,20 +84,19 @@ def season_update(db: Session, season: m.Season,
     return season
 
 
+# HARVESTS ======================================================================================
 def harvest_create(db: Session, user: m.User, year: int,
                    data: sc.HarvestCreate) -> m.Harvest:
 
-    season_m: m.Season = db.query(m.Season).filter(m.Season.year == year)\
-        .filter(m.Season.owner_id == user.id).first()
+    season_m: m.Season = season_get(db, user, year)[0]
 
     if season_m.end_date:
         if not (season_m.start_date <= data.date <= season_m.end_date):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="Harvest date has to be between season start and end")
-    else:
-        if not season_m >= season_m.start_date:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="Harvest date can't be before season start date")
+    elif not season_m >= season_m.start_date:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Harvest date can't be before season start date")
 
     harvest = m.Harvest(
         date=data.date,
@@ -166,29 +167,18 @@ def harvest_get(db: Session, user: m.User,
     return harvests.all()
 
 
-def employee_create(db: Session, user: m.User, season: m.Season,
+# EMPLOYEES ======================================================================================
+def employee_create(db: Session, user: m.User, year: int,
                     data: sc.EmployeeCreate) -> m.Employee:
-    employee = m.Employee(
-        employer_id=user.id,
-        name=data.name,
-        season_id=season.id,
-        start_date=data.start_date
-    )
-    db.add(employee)
-    db.commit()
-    db.refresh(employee)
-    return employee
+    season_m: m.Season = season_get(db, user, year)[0]
+    # TODO check dates
+    # TODO
 
-
+# EXPENSES ======================================================================================
 def expense_create(db: Session, season: m.Season,
                    data: sc.ExpenseCreate) -> m.Expense:
-    expense = m.Expense(
-        type=data.type,
-        date=data.date,
-        amount=data.amount,
-        season_id=season.id
-    )
-    db.add(expense)
-    db.commit()
-    db.refresh(expense)
-    return expense
+    # TODO - implement
+
+# WORKDAYS
+def workday_create() -> m.Workday:
+    # TODO - implement
