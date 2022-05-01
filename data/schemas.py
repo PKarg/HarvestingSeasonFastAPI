@@ -54,7 +54,7 @@ class HarvestBase(BaseModel):
 
 
 class HarvestCreate(HarvestBase):
-    employees: Optional[List[int]] = None
+    employee_ids: Optional[List[int]] = None
 
 
 class HarvestReplace(HarvestCreate):
@@ -87,6 +87,7 @@ class EmployeeBase(BaseModel):
 
 
 class EmployeeCreate(EmployeeBase):
+    end_date: Optional[datetime.date]
     harvest_ids: Optional[List[int]] = None
 
 
@@ -117,7 +118,6 @@ class EmployeeResponse(EmployeeBase):
 class WorkdayCreate(BaseModel):
     employee_id: Optional[int] = None
     harvest_id: Optional[int] = None
-    fruit: str
     harvested: decimal.Decimal
     pay_per_kg: decimal.Decimal
 
@@ -138,15 +138,9 @@ class WorkdayCreate(BaseModel):
         return pay_per_kg
 
 
-class WorkdayReplace(WorkdayCreate):
-    # TODO WorkdayReplace() seems redundant
-    pass
-
-
 class WorkdayUpdate(WorkdayCreate):
     employee_id: Optional[int] = None
     harvest_id: Optional[int] = None
-    fruit: Optional[str] = None
     harvested: Optional[decimal.Decimal] = None
     pay_per_kg: Optional[decimal.Decimal] = None
 

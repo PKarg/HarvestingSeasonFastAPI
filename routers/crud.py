@@ -31,9 +31,35 @@ def validate_fruit_qp(qp: str) -> m.Fruit:
                             detail=str(e)) from e
 
 
+def validate_date_in_season_bounds(o_start: datetime.date, s_start: datetime.date, o_name: str,
+                                   o_end: Optional[datetime.date] = None, s_end: Optional[datetime.date] = None) -> None:
+    """
+    Check if dates related to given object are in bounds allowed by given season dates.
+    If dates are out of bounds raises exception taking into account given object name
+
+    :param o_start: start (or only) date for given object
+    :param s_start: start date for given season
+    :param o_name: name of object (for example "Harvest")
+    :param o_end: end date for given object
+    :param s_end: end date for given season
+    :return:
+    """
+    if s_end:
+        if o_end and not (s_start <= o_start <= o_end <= s_end):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"{o_name} start and end dates have to be between season start and end")
+        elif not (s_start <= o_start <= o_end <= s_end):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"{o_name} start date has to be between season start and end")
+    elif o_end and not s_start <= o_start <= o_end:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"{o_name} start date must be before employee end date, and both can't be before season start date")
+    elif not s_start <= o_start:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"{o_name} start date can't be before season start date")
+
+
 # SEASONS ===============================================================================================
-
-
 def season_create(db: Session, user: m.User,
                   start_date: datetime.date,
                   end_date: Optional[datetime.date] = None) -> m.Season:
@@ -90,15 +116,18 @@ def harvest_create(db: Session, user: m.User, year: int,
 
     season_m: m.Season = season_get(db, user, year)[0]
 
+    validate_date_in_season_bounds(o_name="Harvest", o_start=data.date, s_start=season_m.start_date,
+                                   s_end=season_m.end_date)
+
     if season_m.end_date:
         if not (season_m.start_date <= data.date <= season_m.end_date):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="Harvest date has to be between season start and end")
-    elif not season_m >= season_m.start_date:
+    elif not season_m.start_date <= data.date:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Harvest date can't be before season start date")
 
-    harvest = m.Harvest(
+    harvest_m_new = m.Harvest(
         date=data.date,
         price=data.price,
         fruit=data.fruit,
@@ -106,22 +135,16 @@ def harvest_create(db: Session, user: m.User, year: int,
         season_id=season_m.id,
         owner_id=user.id
     )
-    if data.employees:
-        harvest.employees = db.query(m.Employee)\
-            .filter(m.Employee.id.in_(data.employees))\
+    if data.employee_ids:
+        harvest_m_new.employees = db.query(m.Employee)\
+            .filter(m.Employee.id.in_(data.employee_ids))\
             .filter(m.Employee.season_id == season_m.id)\
             .all()
 
-    if data.workdays:
-        harvest.workdays = db.query(m.Workday) \
-            .filter(m.Employee.id.in_(data.employees)) \
-            .filter(m.Employee.season_id == season_m.id) \
-            .all()
-
-    db.add(harvest)
+    db.add(harvest_m_new)
     db.commit()
-    db.refresh(harvest)
-    return harvest
+    db.refresh(harvest_m_new)
+    return harvest_m_new
 
 
 def harvest_get(db: Session, user: m.User,
@@ -171,14 +194,72 @@ def harvest_get(db: Session, user: m.User,
 def employee_create(db: Session, user: m.User, year: int,
                     data: sc.EmployeeCreate) -> m.Employee:
     season_m: m.Season = season_get(db, user, year)[0]
-    # TODO check dates
-    # TODO
+    validate_date_in_season_bounds(o_name="Employee", o_start=data.start_date, o_end=data.end_date,
+                                   s_start=season_m.start_date, s_end=season_m.end_date)
+
+    employee_m_new = m.Employee(
+        employer_id=user.id,
+        name=data.name,
+        season_id=season_m.id,
+        start_date=data.start_date,
+        end_date=data.end_date
+    )
+    if data.harvest_ids:
+        employee_m_new.harvests = db.query(m.Harvest)\
+            .filter(m.Harvest.id.in_(data.harvest_ids))\
+            .filter(m.Harvest.season_id==season_m.id).all()
+
+    db.add(employee_m_new)
+    db.commit()
+    db.refresh(employee_m_new)
+
+    return employee_m_new
+
 
 # EXPENSES ======================================================================================
-def expense_create(db: Session, season: m.Season,
+
+def expense_create(db: Session, year: int, user: m.User,
                    data: sc.ExpenseCreate) -> m.Expense:
-    # TODO - implement
+    season_m: m.Season = season_get(db, user, year)[0]
+    validate_date_in_season_bounds(o_start=data.date, s_start=season_m.start_date,
+                                   s_end=season_m.end_date, o_name="Expense")
+    expense_m_new = m.Expense(
+        type=data.type,
+        amount=data.amount,
+        date=data.date,
+        season_id=season_m.id
+    )
+
+    db.add(expense_m_new)
+    db.commit()
+    db.refresh(expense_m_new)
+
+    return expense_m_new
+
 
 # WORKDAYS
-def workday_create() -> m.Workday:
-    # TODO - implement
+def workday_create(db: Session,
+                   user: m.User,
+                   data: sc.WorkdayCreate,
+                   h_id: Optional[int] = None,
+                   e_id: Optional[int] = None) -> m.Workday:
+    workday_m_new = m.Workday
+    workday_m_new.harvest_id = h_id or data.harvest_id
+    workday_m_new.employee_id = e_id or data.employee_id
+
+    harvest_m = db.query(m.Harvest).filter(m.Harvest.owner_id == user)\
+        .filter(m.Harvest.id == workday_m_new.harvest_id).first()
+
+    if not workday_m_new.harvest_id and workday_m_new.employee_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Both Employee and Harvest id are needed to create a Workday")
+
+    workday_m_new.fruit = harvest_m.fruit
+    workday_m_new.harvested = data.harvested
+    workday_m_new.pay_per_kg = data.pay_per_kg
+
+    db.add(workday_m_new)
+    db.commit()
+    db.refresh(workday_m_new)
+
+    return workday_m_new

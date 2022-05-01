@@ -114,7 +114,6 @@ class Workday(Base):
     id = Column(Integer, primary_key=True, index=True)
     employee_id = Column(Integer, ForeignKey("employees.id"))
     harvest_id = Column(Integer, ForeignKey("harvests.id"))
-    fruit = Column(String, nullable=False)
     harvested = Column(DECIMAL(5, 1))
     pay_per_kg = Column(DECIMAL(5, 1))
 
