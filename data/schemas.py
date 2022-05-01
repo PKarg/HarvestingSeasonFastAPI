@@ -29,12 +29,7 @@ class User(UserBase):
 
 
 # HARVESTS && EMPLOYEES && WORKDAYS ================================================================
-# TODO add workday schemas
-
-class WorkdayCreate(BaseModel):
-    pass
-
-
+# HARVESTS -----------------------
 class HarvestBase(BaseModel):
     price: dec.Decimal
     harvested: dec.Decimal
@@ -62,28 +57,52 @@ class HarvestBase(BaseModel):
 
 class HarvestCreate(HarvestBase):
     employees: Optional[List[int]] = None
-    workdays: Optional[List[WorkdayCreate]] = None
 
 
-class HarvestUpdate(HarvestCreate):
+class HarvestReplace(HarvestCreate):
     id: int
     season_id: int
+    employees: List[int]
 
 
-class HarvestResponse(HarvestUpdate):
+# Inheriting validators for decimal values
+class HarvestUpdate(HarvestBase):
+    fruit: Optional[str] = None
+    harvested: Optional[decimal.Decimal] = None
+    date: Optional[datetime.date] = None
+    price: Optional[decimal.Decimal] = None
+    season_id: Optional[int] = None
+    employee_ids: Optional[List[int]] = None
+
+
+class HarvestResponse(HarvestReplace):
     owner_id: int
 
     class Config:
         orm_mode = True
 
 
+# EMPLOYEES -----------------------
 class EmployeeBase(BaseModel):
     name: str
     start_date: datetime.date
 
 
 class EmployeeCreate(EmployeeBase):
-    harvests: Optional[List[int]]
+    harvest_ids: Optional[List[int]] = None
+
+
+class EmployeeReplace(EmployeeCreate):
+    season_id: int
+    harvest_ids: List[int]
+
+
+class EmployeeUpdate(EmployeeBase):
+    name: Optional[str] = None
+    start_date: Optional[datetime.date] = None
+    end_date: Optional[datetime.date] = None
+    harvests_ids: Optional[List[int]] = None
+    season_id: Optional[int] = None
 
 
 class EmployeeResponse(EmployeeBase):
@@ -96,6 +115,47 @@ class EmployeeResponse(EmployeeBase):
         orm_mode = True
 
 
+# WORKDAYS -----------------------
+class WorkdayCreate(BaseModel):
+    employee_id: Optional[int] = None
+    harvest_id: Optional[int] = None
+    fruit: str
+    harvested: decimal.Decimal
+    pay_per_kg: decimal.Decimal
+
+    @validator("harvested", pre=True, always=True)
+    def check_decimals_harvested(cls, harvested: dec.Decimal):
+        if dec.Decimal(harvested).same_quantum(dec.Decimal("1.0")):
+            harvested = harvested
+            return harvested
+        else:
+            harvested = dec.Decimal(harvested).quantize(dec.Decimal("1.0"))
+            return harvested
+
+    @validator("pay_per_kg", pre=True, always=True)
+    def check_decimals_price(cls, pay_per_kg: dec.Decimal):
+        if dec.Decimal(pay_per_kg).same_quantum(dec.Decimal("1.0")):
+            pay_per_kg = pay_per_kg
+            return pay_per_kg
+        else:
+            pay_per_kg = dec.Decimal(pay_per_kg).quantize(dec.Decimal("1.0"))
+            return pay_per_kg
+
+
+class WorkdayReplace(WorkdayCreate):
+    # TODO WorkdayReplace() seems redundant
+    pass
+
+
+class WorkdayUpdate(WorkdayCreate):
+    employee_id: Optional[int] = None
+    harvest_id: Optional[int] = None
+    fruit: Optional[str] = None
+    harvested: Optional[decimal.Decimal] = None
+    pay_per_kg: Optional[decimal.Decimal] = None
+
+
+# RESPONSES WITH SUB-COLLECTIONS ======================================================
 class HarvestResponseEmployees(HarvestResponse):
     employees: Optional[List[EmployeeResponse]] = None
 
@@ -124,6 +184,17 @@ class ExpenseCreate(BaseModel):
         else:
             amount = dec.Decimal(amount).quantize(dec.Decimal("1.0"))
             return amount
+
+
+class ExpenseReplace(ExpenseCreate):
+    season_id: int
+
+
+class ExpenseUpdate(ExpenseCreate):
+    type: Optional[str]
+    date: Optional[datetime.date]
+    amount: Optional[decimal.Decimal]
+    season_id: Optional[int]
 
 
 class ExpenseResponse(ExpenseCreate):
