@@ -247,8 +247,7 @@ def workday_create(db: Session,
     workday_m_new.harvest_id = h_id or data.harvest_id
     workday_m_new.employee_id = e_id or data.employee_id
 
-    harvest_m = db.query(m.Harvest).filter(m.Harvest.owner_id == user)\
-        .filter(m.Harvest.id == workday_m_new.harvest_id).first()
+    harvest_m: m.Harvest = harvest_get(db=db, user=user, id=h_id)[0]
 
     if not workday_m_new.harvest_id and workday_m_new.employee_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,

@@ -18,8 +18,7 @@ router = APIRouter(
 def seasons_post(season_data: sc.SeasonBase,
                  user: m.User = Depends(get_current_user),
                  db: Session = Depends(get_db)):
-    season_m_new = crud.season_create(db, user, season_data.start_date)
-    return season_m_new
+    return crud.season_create(db, user, season_data.start_date)
 
 
 @router.get("/", status_code=status.HTTP_200_OK,
@@ -27,8 +26,7 @@ def seasons_post(season_data: sc.SeasonBase,
 def seasons_get_all(user: m.User = Depends(get_current_user),
                     db: Session = Depends(get_db),
                     after: Optional[str] = Query(None)):
-    seasons_m_all = crud.season_get(db, user, after=after)
-    return seasons_m_all
+    return crud.season_get(db, user, after=after)
 
 
 @router.get("/{year}", status_code=status.HTTP_200_OK,
@@ -36,8 +34,7 @@ def seasons_get_all(user: m.User = Depends(get_current_user),
 def seasons_get_by_year(year: int,
                         user: m.User = Depends(get_current_user),
                         db: Session = Depends(get_db)):
-    season_m = crud.season_get(db, user, year)[0]
-    return season_m
+    return crud.season_get(db, user, year)[0]
 
 
 @router.patch("/{year}", status_code=status.HTTP_200_OK,
@@ -46,8 +43,7 @@ def seasons_update(year: int, season_data: sc.SeasonUpdate,
                    user: m.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
     season_m = crud.season_get(db, user, year)[0]
-    season_m_updated = crud.season_update(db, season_m, season_data.start_date, season_data.end_date)
-    return season_m_updated
+    return crud.season_update(db, season_m, season_data.start_date, season_data.end_date)
 
 
 @router.delete("/{year}", status_code=status.HTTP_200_OK)
@@ -65,8 +61,7 @@ def harvests_post(year: int,
                   harvest_data: sc.HarvestCreate,
                   user: m.User = Depends(get_current_user),
                   db: Session = Depends(get_db)):
-    harvest_m_new = crud.harvest_create(db, user, year, harvest_data)
-    return harvest_m_new
+    return crud.harvest_create(db, user, year, harvest_data)
 
 
 @router.get("/{year}/harvests", status_code=status.HTTP_200_OK,
@@ -81,9 +76,7 @@ def harvests_get(year: int,
                  p_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                  h_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                  h_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$")):
-    harvest_m_all = crud.harvest_get(db, user, year=year, after=after, before=before, fruit=fruit,
-                                     p_more=p_more, p_less=p_less, h_more=h_more, h_less=h_less)
-    return harvest_m_all
+    return crud.harvest_get(db, user, year=year, after=after, before=before, fruit=fruit, p_more=p_more, p_less=p_less, h_more=h_more, h_less=h_less)
 
 
 @router.post("/{year}/employees", status_code=status.HTTP_201_CREATED,
@@ -93,8 +86,7 @@ def employees_post(year: int,
                    user: m.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
     season_m = crud.season_get(db, user, year)[0]
-    harvest_m_new = crud.employee_create(db, user, season_m, employee_data)
-    return harvest_m_new
+    return crud.employee_create(db, user, season_m, employee_data)
 
 
 @router.get("{year}/employees", status_code=status.HTTP_200_OK,
@@ -113,8 +105,7 @@ def expenses_get(year: int,
                  user: m.User = Depends(get_current_user),
                  db: Session = Depends(get_db)):
     season_m: m.Season = crud.season_get(db, user, year)[0]
-    expense_m_new: m.Expense = crud.expense_create(db, season_m, expense_data)
-    return expense_m_new
+    return crud.expense_create(db, season_m, expense_data)
 
 
 @router.get("/{year}/expenses", status_code=status.HTTP_200_OK,
