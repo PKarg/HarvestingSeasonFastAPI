@@ -120,6 +120,7 @@ class WorkdayCreate(BaseModel):
     harvest_id: Optional[int] = None
     harvested: decimal.Decimal = Field(ge=3, le=500)
     pay_per_kg: decimal.Decimal = Field(ge=1.5, le=10)
+    employer_id: int
 
     @validator("harvested", pre=True, always=True)
     def check_decimals_harvested(cls, harvested: dec.Decimal):
@@ -147,6 +148,7 @@ class WorkdayUpdate(WorkdayCreate):
 
 class WorkdayResponse(WorkdayCreate):
     id: int
+    employer_id: int
 
 
 # RESPONSES WITH SUB-COLLECTIONS ======================================================
@@ -209,6 +211,7 @@ class ExpenseUpdate(ExpenseCreate):
 class ExpenseResponse(ExpenseCreate):
     id: int
     season_id: int
+    owner_id: int
 
     class Config:
         orm_mode = True
