@@ -85,6 +85,7 @@ class Expense(Base):
     date = Column(DATE, nullable=False)
     amount = Column(DECIMAL(6, 1), nullable=False)
     season_id = Column(ForeignKey("seasons.id"))
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     season = relationship("Season", back_populates="expenses")
 
@@ -116,6 +117,7 @@ class Workday(Base):
     harvest_id = Column(Integer, ForeignKey("harvests.id"))
     harvested = Column(DECIMAL(5, 1))
     pay_per_kg = Column(DECIMAL(5, 1))
+    employer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     employee = relationship("Employee", back_populates="workdays")
     harvest = relationship("Harvest", back_populates="workdays")

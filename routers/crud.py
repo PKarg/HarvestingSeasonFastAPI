@@ -5,8 +5,8 @@ from typing import Optional, List
 
 from fastapi import HTTPException, status
 from sqlalchemy import extract
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
-
 from data import models as m, schemas as sc
 
 
@@ -63,16 +63,20 @@ def validate_date_in_season_bounds(o_start: datetime.date, s_start: datetime.dat
 def season_create(db: Session, user: m.User,
                   start_date: datetime.date,
                   end_date: Optional[datetime.date] = None) -> m.Season:
-    season = m.Season(year=start_date.year,
-                      start_date=start_date,
-                      owner_id=user.id)
-    if end_date:
-        season.end_date = end_date
-    season.owner = user
-    db.add(season)
-    db.commit()
-    db.refresh(season)
-    return season
+    try:
+        season = m.Season(year=start_date.year,
+                          start_date=start_date,
+                          owner_id=user.id)
+        if end_date:
+            season.end_date = end_date
+        season.owner = user
+        db.add(season)
+        db.commit()
+        db.refresh(season)
+        return season
+    except IntegrityError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Season with given year already exists") from e
 
 
 def season_get(db: Session, user: m.User,
@@ -115,17 +119,8 @@ def harvest_create(db: Session, user: m.User, year: int,
                    data: sc.HarvestCreate) -> m.Harvest:
 
     season_m: m.Season = season_get(db, user, year)[0]
-
     validate_date_in_season_bounds(o_name="Harvest", o_start=data.date, s_start=season_m.start_date,
                                    s_end=season_m.end_date)
-
-    if season_m.end_date:
-        if not (season_m.start_date <= data.date <= season_m.end_date):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="Harvest date has to be between season start and end")
-    elif not season_m.start_date <= data.date:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Harvest date can't be before season start date")
 
     harvest_m_new = m.Harvest(
         date=data.date,
@@ -193,7 +188,7 @@ def harvest_get(db: Session, user: m.User,
 # EMPLOYEES ======================================================================================
 def employee_create(db: Session, user: m.User, year: int,
                     data: sc.EmployeeCreate) -> m.Employee:
-    season_m: m.Season = season_get(db, user, year)[0]
+    season_m: m.Season = season_get(db=db, user=user, year=year)[0]
     validate_date_in_season_bounds(o_name="Employee", o_start=data.start_date, o_end=data.end_date,
                                    s_start=season_m.start_date, s_end=season_m.end_date)
 
@@ -207,7 +202,7 @@ def employee_create(db: Session, user: m.User, year: int,
     if data.harvest_ids:
         employee_m_new.harvests = db.query(m.Harvest)\
             .filter(m.Harvest.id.in_(data.harvest_ids))\
-            .filter(m.Harvest.season_id==season_m.id).all()
+            .filter(m.Harvest.season_id == season_m.id).all()
 
     db.add(employee_m_new)
     db.commit()
@@ -220,7 +215,7 @@ def employee_create(db: Session, user: m.User, year: int,
 
 def expense_create(db: Session, year: int, user: m.User,
                    data: sc.ExpenseCreate) -> m.Expense:
-    season_m: m.Season = season_get(db, user, year)[0]
+    season_m: m.Season = season_get(db=db, user=user, year=year)[0]
     validate_date_in_season_bounds(o_start=data.date, s_start=season_m.start_date,
                                    s_end=season_m.end_date, o_name="Expense")
     expense_m_new = m.Expense(

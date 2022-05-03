@@ -31,8 +31,8 @@ class User(UserBase):
 # HARVESTS && EMPLOYEES && WORKDAYS ================================================================
 # HARVESTS -----------------------
 class HarvestBase(BaseModel):
-    price: dec.Decimal
-    harvested: dec.Decimal
+    price: dec.Decimal = Field(ge=0.5, le=100)
+    harvested: dec.Decimal = Field(ge=1, le=5000)
     date: datetime.date
     fruit: models.Fruit
 
@@ -66,9 +66,9 @@ class HarvestReplace(HarvestCreate):
 # Inheriting validators for decimal values
 class HarvestUpdate(HarvestBase):
     fruit: Optional[str] = None
-    harvested: Optional[decimal.Decimal] = None
+    harvested: Optional[decimal.Decimal] = Field(default=None, ge=1, le=5000)
     date: Optional[datetime.date] = None
-    price: Optional[decimal.Decimal] = None
+    price: Optional[decimal.Decimal] = Field(default=None, ge=0.5, le=100)
     season_id: Optional[int] = None
     employee_ids: Optional[List[int]] = None
 
@@ -118,8 +118,8 @@ class EmployeeResponse(EmployeeBase):
 class WorkdayCreate(BaseModel):
     employee_id: Optional[int] = None
     harvest_id: Optional[int] = None
-    harvested: decimal.Decimal
-    pay_per_kg: decimal.Decimal
+    harvested: decimal.Decimal = Field(ge=3, le=500)
+    pay_per_kg: decimal.Decimal = Field(ge=1.5, le=10)
 
     @validator("harvested", pre=True, always=True)
     def check_decimals_harvested(cls, harvested: dec.Decimal):
@@ -141,8 +141,8 @@ class WorkdayCreate(BaseModel):
 class WorkdayUpdate(WorkdayCreate):
     employee_id: Optional[int] = None
     harvest_id: Optional[int] = None
-    harvested: Optional[decimal.Decimal] = None
-    pay_per_kg: Optional[decimal.Decimal] = None
+    harvested: Optional[decimal.Decimal] = Field(default=None, ge=3, le=500)
+    pay_per_kg: Optional[decimal.Decimal] = Field(default=None, ge=1.5, le=10)
 
 
 class WorkdayResponse(WorkdayCreate):
@@ -172,7 +172,7 @@ class HarvestResponseALL(HarvestResponse):
         orm_mode = True
 
 
-class EmployeeResponseHarvests(EmployeeResponse):
+class EmployeeResponseALL(EmployeeResponse):
     harvests: List[HarvestResponse]
     workdays: List[WorkdayResponse]
 
@@ -202,7 +202,7 @@ class ExpenseReplace(ExpenseCreate):
 class ExpenseUpdate(ExpenseCreate):
     type: Optional[str]
     date: Optional[datetime.date]
-    amount: Optional[decimal.Decimal]
+    amount: Optional[decimal.Decimal] = Field(default=None, ge=10, le=100000)
     season_id: Optional[int]
 
 
@@ -216,7 +216,8 @@ class ExpenseResponse(ExpenseCreate):
 
 # SEASONS ================================================================
 class SeasonBase(BaseModel):
-    start_date: Optional[datetime.date]
+    start_date: datetime.date
+    end_date: Optional[datetime.date] = None
 
     @validator("start_date", pre=True, always=True)
     def set_start_date(cls, start_date: Optional[datetime.date] = None):
@@ -228,8 +229,6 @@ class SeasonBase(BaseModel):
 
 
 class SeasonUpdate(SeasonBase):
-    end_date: Optional[datetime.date]
-
     @validator("end_date", pre=True, always=True)
     def set_end_date(cls, end_date: Optional[datetime.date] = None):
         end_date = datetime.datetime.now(datetime.timezone.utc).date() if end_date is None else end_date

@@ -76,7 +76,8 @@ def harvests_get(year: int,
                  p_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                  h_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                  h_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$")):
-    return crud.harvest_get(db, user, year=year, after=after, before=before, fruit=fruit, p_more=p_more, p_less=p_less, h_more=h_more, h_less=h_less)
+    return crud.harvest_get(db, user, year=year, after=after, before=before,
+                            fruit=fruit, p_more=p_more, p_less=p_less, h_more=h_more, h_less=h_less)
 
 
 @router.post("/{year}/employees", status_code=status.HTTP_201_CREATED,
@@ -85,25 +86,24 @@ def employees_post(year: int,
                    employee_data: sc.EmployeeCreate,
                    user: m.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
-    season_m = crud.season_get(db, user, year)[0]
-    return crud.employee_create(db, user, season_m, employee_data)
+    return crud.employee_create(db, user, year, employee_data)
 
 
 @router.get("{year}/employees", status_code=status.HTTP_200_OK,
             response_model=List[sc.EmployeeResponse])
-def harvests_get(year: int,
-                 user: m.User = Depends(get_current_user),
-                 db: Session = Depends(get_db)):
+def employees_get(year: int,
+                  user: m.User = Depends(get_current_user),
+                  db: Session = Depends(get_db)):
     season_m = crud.season_get(db, user, year)[0]
     return season_m.employees
 
 
 @router.post("/{year}/expenses", status_code=status.HTTP_201_CREATED,
              response_model=sc.ExpenseResponse)
-def expenses_get(year: int,
-                 expense_data: sc.ExpenseCreate,
-                 user: m.User = Depends(get_current_user),
-                 db: Session = Depends(get_db)):
+def expenses_post(year: int,
+                  expense_data: sc.ExpenseCreate,
+                  user: m.User = Depends(get_current_user),
+                  db: Session = Depends(get_db)):
     season_m: m.Season = crud.season_get(db, user, year)[0]
     return crud.expense_create(db, season_m, expense_data)
 
