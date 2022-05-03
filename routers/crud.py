@@ -161,6 +161,7 @@ def harvest_create(db: Session, user: m.User, year: int,
 
 def harvest_get(db: Session, user: m.User,
                 id: Optional[int] = None,
+                employee_id: Optional[int] = None,
                 year: Optional[int] = None,
                 season_id: Optional[int] = None,
                 after: Optional[str] = None,
@@ -199,6 +200,10 @@ def harvest_get(db: Session, user: m.User,
     if h_less:
         h_less = int(h_less)
         harvests = harvests.filter(m.Harvest.harvested < h_less)
+    if employee_id:
+        employee_m: m.Employee = employee_get(db=db, user=user, id=employee_id)[0]
+        harvest_ids = [h.id for h in employee_m.harvests]
+        harvests = harvests.filter(m.Harvest.id.in_(harvest_ids))
     harvests = harvests.all()
     if not harvests:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,

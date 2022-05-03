@@ -63,8 +63,7 @@ def employee_delete(e_id: int,
 def employee_get_harvests(e_id: int,
                           user: m.User = Depends(get_current_user),
                           db: Session = Depends(get_db)):
-    # TODO - implement
-    pass
+    return crud.harvest_get(db=db, user=user, employee_id=e_id)
 
 
 @router.get("/{e_id}/workdays", status_code=status.HTTP_200_OK,
