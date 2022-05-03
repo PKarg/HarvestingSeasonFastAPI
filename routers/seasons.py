@@ -18,15 +18,19 @@ router = APIRouter(
 def seasons_post(season_data: sc.SeasonBase,
                  user: m.User = Depends(get_current_user),
                  db: Session = Depends(get_db)):
-    return crud.season_create(db, user, season_data.start_date)
+    return crud.season_create(db, user, season_data.start_date, season_data.end_date)
 
 
 @router.get("/", status_code=status.HTTP_200_OK,
             response_model=List[sc.SeasonResponse])
 def seasons_get_all(user: m.User = Depends(get_current_user),
                     db: Session = Depends(get_db),
-                    after: Optional[str] = Query(None)):
-    return crud.season_get(db, user, after=after)
+                    after: Optional[str] = None,
+                    before: Optional[str] = None,
+                    limit: Optional[str] = None,
+                    offset: Optional[str] = None):
+    return crud.season_get(db=db, user=user, after=after, before=before,
+                           limit=limit, offset=offset)
 
 
 @router.get("/{year}", status_code=status.HTTP_200_OK,
@@ -71,7 +75,7 @@ def harvests_get(year: int,
                  db: Session = Depends(get_db),
                  after: Optional[str] = Query(None),
                  before: Optional[str] = Query(None),
-                 fruit: Optional[str] = Query(None, min_length=5, max_length=20),
+                 fruit: Optional[str] = Query(None, min_length=3, max_length=30),
                  p_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                  p_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                  h_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
@@ -104,8 +108,7 @@ def expenses_post(year: int,
                   expense_data: sc.ExpenseCreate,
                   user: m.User = Depends(get_current_user),
                   db: Session = Depends(get_db)):
-    season_m: m.Season = crud.season_get(db, user, year)[0]
-    return crud.expense_create(db, season_m, expense_data)
+    return crud.expense_create(db=db, year=year, user=user, data=expense_data)
 
 
 @router.get("/{year}/expenses", status_code=status.HTTP_200_OK,

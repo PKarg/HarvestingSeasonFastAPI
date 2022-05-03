@@ -117,6 +117,7 @@ class Workday(Base):
     harvest_id = Column(Integer, ForeignKey("harvests.id"))
     harvested = Column(DECIMAL(5, 1))
     pay_per_kg = Column(DECIMAL(5, 1))
+    fruit = Column(String(30), nullable=False)
     employer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     employee = relationship("Employee", back_populates="workdays")

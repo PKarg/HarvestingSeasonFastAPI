@@ -48,7 +48,7 @@ def validate_date_in_season_bounds(o_start: datetime.date, s_start: datetime.dat
         if o_end and not (s_start <= o_start <= o_end <= s_end):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail=f"{o_name} start and end dates have to be between season start and end")
-        elif not (s_start <= o_start <= o_end <= s_end):
+        elif not (s_start <= o_start <= s_end):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail=f"{o_name} start date has to be between season start and end")
     elif o_end and not s_start <= o_start <= o_end:
@@ -67,8 +67,10 @@ def season_create(db: Session, user: m.User,
         season = m.Season(year=start_date.year,
                           start_date=start_date,
                           owner_id=user.id)
-        if end_date:
+        if end_date and end_date.year == start_date.year:
             season.end_date = end_date
+        elif end_date:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Dates need to have the sane year")
         season.owner = user
         db.add(season)
         db.commit()
@@ -82,11 +84,14 @@ def season_create(db: Session, user: m.User,
 def season_get(db: Session, user: m.User,
                year: Optional[int] = None,
                after: Optional[str] = None,
-               before: Optional[str] = None) -> List[m.Season]:
+               before: Optional[str] = None,
+               limit: Optional[str] = None,
+               offset: Optional[str] = None) -> List[m.Season]:
     seasons: db.query = db.query(m.Season)\
         .options(
         joinedload(m.Season.employees),
-        joinedload(m.Season.harvests))\
+        joinedload(m.Season.harvests),
+        joinedload(m.Season.expenses))\
         .filter(m.Season.owner_id == user.id)
     if year:
         seasons = seasons.filter(m.Season.year == year)
@@ -96,7 +101,19 @@ def season_get(db: Session, user: m.User,
     if before:
         before = validate_date_qp(before)
         seasons = seasons.filter(m.Season.start_date > before)
-    return seasons.all()
+    if offset:
+        offset = int(offset)
+        seasons = seasons.offset(offset)
+    if limit:
+        limit = int(limit)
+        seasons = seasons.limit(limit)
+
+    seasons = seasons.all()
+    if not seasons:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Couldn't find Seasons with specified parameters")
+
+    return seasons
 
 
 def season_update(db: Session, season: m.Season,
@@ -120,7 +137,7 @@ def harvest_create(db: Session, user: m.User, year: int,
 
     season_m: m.Season = season_get(db, user, year)[0]
     validate_date_in_season_bounds(o_name="Harvest", o_start=data.date, s_start=season_m.start_date,
-                                   s_end=season_m.end_date)
+                                   s_end=season_m.end_date, o_end=data.date)
 
     harvest_m_new = m.Harvest(
         date=data.date,
@@ -182,7 +199,11 @@ def harvest_get(db: Session, user: m.User,
     if h_less:
         h_less = int(h_less)
         harvests = harvests.filter(m.Harvest.harvested < h_less)
-    return harvests.all()
+    harvests = harvests.all()
+    if not harvests:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Couldn't find Harvest with specified parameters")
+    return harvests
 
 
 # EMPLOYEES ======================================================================================
@@ -211,6 +232,21 @@ def employee_create(db: Session, user: m.User, year: int,
     return employee_m_new
 
 
+def employee_get(db: Session, user: m.User,
+                 id: Optional[int] = None,
+                 season_id: Optional[int] = None):
+    employees = db.query(m.Employee).filter(m.Employee.employer_id == user.id)
+    if id:
+        employees = employees.filter(m.Employee.id == id)
+    if season_id:
+        employees = employees.filter(m.Employee.season_id)
+    employees = employees.all()
+    if not employees:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Couldn't find Employee with specified parameters")
+    return employees
+
+
 # EXPENSES ======================================================================================
 
 def expense_create(db: Session, year: int, user: m.User,
@@ -222,7 +258,8 @@ def expense_create(db: Session, year: int, user: m.User,
         type=data.type,
         amount=data.amount,
         date=data.date,
-        season_id=season_m.id
+        season_id=season_m.id,
+        owner_id=user.id
     )
 
     db.add(expense_m_new)
@@ -238,15 +275,24 @@ def workday_create(db: Session,
                    data: sc.WorkdayCreate,
                    h_id: Optional[int] = None,
                    e_id: Optional[int] = None) -> m.Workday:
-    workday_m_new = m.Workday
+    workday_m_new = m.Workday()
     workday_m_new.harvest_id = h_id or data.harvest_id
     workday_m_new.employee_id = e_id or data.employee_id
-
-    harvest_m: m.Harvest = harvest_get(db=db, user=user, id=h_id)[0]
+    workday_m_new.employer_id = user.id
 
     if not workday_m_new.harvest_id and workday_m_new.employee_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Both Employee and Harvest id are needed to create a Workday")
+
+    harvest_m: m.Harvest = harvest_get(db=db, user=user, id=h_id)[0]
+    employee_m: m.Employee = employee_get(db=db, user=user, id=e_id)[0]
+
+    if harvest_m.season_id != employee_m.season_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Employee and Harvest must belong to the same season")
+
+    if employee_m and employee_m not in harvest_m.employees:
+        harvest_m.employees.append(employee_m)
 
     workday_m_new.fruit = harvest_m.fruit
     workday_m_new.harvested = data.harvested
@@ -255,5 +301,4 @@ def workday_create(db: Session,
     db.add(workday_m_new)
     db.commit()
     db.refresh(workday_m_new)
-
     return workday_m_new

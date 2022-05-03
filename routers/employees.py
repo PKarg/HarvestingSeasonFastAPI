@@ -82,6 +82,5 @@ def employee_create_workday(e_id: int,
                             workday_data: sc.WorkdayCreate,
                             user: m.User = Depends(get_current_user),
                             db: Session = Depends(get_db)):
-    # TODO - implement
-    pass
+    return crud.workday_create(db=db, user=user, data=workday_data, e_id=e_id)
 

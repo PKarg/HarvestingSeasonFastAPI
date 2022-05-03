@@ -57,10 +57,20 @@ class HarvestCreate(HarvestBase):
     employee_ids: Optional[List[int]] = None
 
 
-class HarvestReplace(HarvestCreate):
+class HarvestResponseBase(HarvestBase):
     id: int
     season_id: int
-    employees: List[int]
+
+
+class HarvestResponse(HarvestResponseBase):
+    owner_id: int
+
+    class Config:
+        orm_mode = True
+
+
+class HarvestReplace(HarvestCreate):
+    pass
 
 
 # Inheriting validators for decimal values
@@ -71,10 +81,6 @@ class HarvestUpdate(HarvestBase):
     price: Optional[decimal.Decimal] = Field(default=None, ge=0.5, le=100)
     season_id: Optional[int] = None
     employee_ids: Optional[List[int]] = None
-
-
-class HarvestResponse(HarvestReplace):
-    owner_id: int
 
     class Config:
         orm_mode = True
@@ -120,7 +126,6 @@ class WorkdayCreate(BaseModel):
     harvest_id: Optional[int] = None
     harvested: decimal.Decimal = Field(ge=3, le=500)
     pay_per_kg: decimal.Decimal = Field(ge=1.5, le=10)
-    employer_id: int
 
     @validator("harvested", pre=True, always=True)
     def check_decimals_harvested(cls, harvested: dec.Decimal):
@@ -144,11 +149,16 @@ class WorkdayUpdate(WorkdayCreate):
     harvest_id: Optional[int] = None
     harvested: Optional[decimal.Decimal] = Field(default=None, ge=3, le=500)
     pay_per_kg: Optional[decimal.Decimal] = Field(default=None, ge=1.5, le=10)
+    fruit: Optional[str] = Field(default=None, min_length=3, max_length=30)
 
 
 class WorkdayResponse(WorkdayCreate):
     id: int
     employer_id: int
+    fruit: str
+
+    class Config:
+        orm_mode = True
 
 
 # RESPONSES WITH SUB-COLLECTIONS ======================================================
@@ -186,7 +196,7 @@ class EmployeeResponseALL(EmployeeResponse):
 class ExpenseCreate(BaseModel):
     type: str
     date: datetime.date
-    amount: decimal.Decimal
+    amount: decimal.Decimal = Field(ge=10, le=100000)
 
     @validator("amount", pre=True, always=True)
     def check_decimals_expense(cls, amount: dec.Decimal):
@@ -230,18 +240,20 @@ class SeasonBase(BaseModel):
             start_date = start_date
         return start_date
 
-
-class SeasonUpdate(SeasonBase):
     @validator("end_date", pre=True, always=True)
     def set_end_date(cls, end_date: Optional[datetime.date] = None):
         end_date = datetime.datetime.now(datetime.timezone.utc).date() if end_date is None else end_date
         return end_date
 
 
+class SeasonUpdate(SeasonBase):
+    pass
+
+
 class SeasonResponse(SeasonBase):
     id: int
     year: int
-    end_date: Optional[datetime.date]
+    end_date: Optional[datetime.date] = None
     owner_id: int
     harvests: Optional[List[HarvestResponse]] = None
     employees: Optional[List[EmployeeResponse]] = None
