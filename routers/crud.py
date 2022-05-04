@@ -239,10 +239,16 @@ def employee_create(db: Session, user: m.User, year: int,
 
 def employee_get(db: Session, user: m.User,
                  id: Optional[int] = None,
-                 season_id: Optional[int] = None):
+                 harvest_id: Optional[int] = None,
+                 season_id: Optional[int] = None) -> List[m.Employee]:
     employees = db.query(m.Employee).filter(m.Employee.employer_id == user.id)
+    # TODO add lacking filters
     if id:
         employees = employees.filter(m.Employee.id == id)
+    if harvest_id:
+        harvest: m.Harvest = harvest_get(db=db, user=user, id=harvest_id)[0]
+        employee_ids = [e.id for e in harvest.employees]
+        employees = employees.filter(m.Employee.id.in_(employee_ids))
     if season_id:
         employees = employees.filter(m.Employee.season_id)
     employees = employees.all()

@@ -17,23 +17,23 @@ router = APIRouter(
 @router.get("/", status_code=status.HTTP_200_OK,
             response_model=List[sc.ExpenseResponse])
 def expense_get_all(user: m.User = Depends(get_current_user),
-                     db: Session = Depends(get_db)):
+                    db: Session = Depends(get_db)):
     # TODO implement
     pass
 
 
-@router.get("/{e_id}", status_code=status.HTTP_200_OK,
+@router.get("/{ex_id}", status_code=status.HTTP_200_OK,
             response_model=sc.ExpenseResponse)
-def expense_get_id(e_id: int,
+def expense_get_id(ex_id: int,
                    user: m.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
     # TODO implement
     pass
 
 
-@router.patch("/{e_id}", status_code=status.HTTP_200_OK,
+@router.patch("/{ex_id}", status_code=status.HTTP_200_OK,
               response_model=sc.ExpenseResponse)
-def expense_update(e_id: int,
+def expense_update(ex_id: int,
                    expense_data: sc.ExpenseUpdate,
                    user: m.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
@@ -41,9 +41,9 @@ def expense_update(e_id: int,
     pass
 
 
-@router.put("/{e_id}", status_code=status.HTTP_200_OK,
+@router.put("/{ex_id}", status_code=status.HTTP_200_OK,
             response_model=sc.ExpenseResponse)
-def expense_replace(e_id: int,
+def expense_replace(ex_id: int,
                     expense_data: sc.ExpenseReplace,
                     user: m.User = Depends(get_current_user),
                     db: Session = Depends(get_db)):
@@ -52,7 +52,7 @@ def expense_replace(e_id: int,
 
 
 @router.delete("/{e_id}", status_code=status.HTTP_200_OK)
-def expense_update(e_id: int,
+def expense_update(ex_id: int,
                    user: m.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
     # TODO implement

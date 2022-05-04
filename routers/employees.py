@@ -15,11 +15,11 @@ router = APIRouter(
 
 
 @router.get("/", status_code=status.HTTP_200_OK,
-            response_model=sc.EmployeeResponse)
+            response_model=List[sc.EmployeeResponse])
 def employees_get_all(user: m.User = Depends(get_current_user),
                       db: Session = Depends(get_db)):
-    # TODO - implement
-    pass
+    # TODO add query parameters for filtering
+    return crud.employee_get(db=db, user=user)
 
 
 @router.get("/{e_id}", status_code=status.HTTP_200_OK,
@@ -27,8 +27,7 @@ def employees_get_all(user: m.User = Depends(get_current_user),
 def employees_get_id(e_id: int,
                      user: m.User = Depends(get_current_user),
                      db: Session = Depends(get_db)):
-    # TODO - implement
-    pass
+    return crud.employee_get(db=db, user=user, id=e_id)[0]
 
 
 @router.patch("/{e_id}", status_code=status.HTTP_200_OK,

@@ -15,7 +15,7 @@ router = APIRouter(
 
 
 @router.get("/", status_code=status.HTTP_200_OK,
-            response_model=List[sc.HarvestResponse])
+            response_model=List[sc.HarvestResponseALL])
 def harvests_get_all(user: m.User = Depends(get_current_user),
                      db: Session = Depends(get_db),
                      year: Optional[str] = Query(None, min_length=4, max_length=4, regex=r"^ *\d[\d ]*$"),
@@ -28,19 +28,16 @@ def harvests_get_all(user: m.User = Depends(get_current_user),
                      h_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                      h_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$")
                      ):
-    harvests_m_all: List[m.Harvest] = crud.harvest_get(db, user, after=after, before=before, fruit=fruit, year=year,
-                                                       season_id=season_id, p_more=p_more, p_less=p_less, h_more=h_more, h_less=h_less)
-    return harvests_m_all
+    return crud.harvest_get(db, user, after=after, before=before, fruit=fruit, year=year, season_id=season_id, p_more=p_more, p_less=p_less, h_more=h_more, h_less=h_less)
 
 
 @router.get("/{h_id}", status_code=status.HTTP_200_OK,
-            response_model=sc.HarvestResponse)
+            response_model=sc.HarvestResponseALL)
 def harvests_get_id(h_id: int,
                     user: m.User = Depends(get_current_user),
                     db: Session = Depends(get_db)):
     try:
-        harvests_m: m.Harvest = crud.harvest_get(db, user, id=h_id)[0]
-        return harvests_m
+        return crud.harvest_get(db, user, id=h_id)[0]
     except IndexError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Object with given id doesn't exist")
 
@@ -80,8 +77,8 @@ def harvests_update(h_id: int,
 def harvests_get_employees(h_id: int,
                            user: m.User = Depends(get_current_user),
                            db: Session = Depends(get_db)):
-    # TODO implement
-    pass
+    # TODO add query params for filtering to endpoint
+    return crud.employee_get(db=db, user=user, harvest_id=h_id)
 
 
 @router.get("/{id}/workdays", status_code=status.HTTP_200_OK,
