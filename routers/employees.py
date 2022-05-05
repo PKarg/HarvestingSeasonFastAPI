@@ -65,6 +65,7 @@ def employee_delete(e_id: int,
 def employee_get_harvests(e_id: int,
                           user: m.User = Depends(get_current_user),
                           db: Session = Depends(get_db)):
+    # TODO add lacking filters
     return crud.harvest_get(db=db, user=user, employee_id=e_id)
 
 
@@ -72,9 +73,15 @@ def employee_get_harvests(e_id: int,
             response_model=List[sc.WorkdayResponse])
 def employee_get_workdays(e_id: int,
                           user: m.User = Depends(get_current_user),
-                          db: Session = Depends(get_db)):
-    # TODO - implement
-    pass
+                          db: Session = Depends(get_db),
+                          p_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
+                          p_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
+                          h_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
+                          h_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
+                          fruit: Optional[str] = Query(None, min_length=5, max_length=20)):
+    return crud.workdays_get(db=db, user=user, e_id=e_id, p_more=p_more,
+                             p_less=p_less, h_more=h_more, h_less=h_less,
+                             fruit=fruit)
 
 
 @router.post("/{e_id}/workdays", status_code=status.HTTP_201_CREATED,

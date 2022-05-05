@@ -189,16 +189,16 @@ def harvest_get(db: Session, user: m.User,
         fruit = validate_fruit_qp(fruit)
         harvests = harvests.filter(m.Harvest.fruit == fruit)
     if p_more:
-        p_more = int(p_more)
+        p_more = decimal.Decimal(p_more)
         harvests = harvests.filter(m.Harvest.price > p_more)
     if p_less:
-        p_less = int(p_less)
+        p_less = decimal.Decimal(p_less)
         harvests = harvests.filter(m.Harvest.price < p_less)
     if h_more:
-        h_more = int(h_more)
+        h_more = decimal.Decimal(h_more)
         harvests = harvests.filter(m.Harvest.harvested > h_more)
     if h_less:
-        h_less = int(h_less)
+        h_less = decimal.Decimal(h_less)
         harvests = harvests.filter(m.Harvest.harvested < h_less)
     if employee_id:
         employee_m: m.Employee = employee_get(db=db, user=user, id=employee_id)[0]
@@ -371,3 +371,42 @@ def workday_create(db: Session,
     db.commit()
     db.refresh(workday_m_new)
     return workday_m_new
+
+
+def workdays_get(db: Session,
+                user: m.User,
+                id: Optional[int] = None,
+                h_id: Optional[int] = None,
+                e_id: Optional[int] = None,
+                fruit: Optional[str] = None,
+                h_more: Optional[str] = None,
+                h_less: Optional[str] = None,
+                p_more: Optional[str] = None,
+                p_less: Optional[str] = None) -> List[m.Workday]:
+    workdays = db.query(m.Workday).filter(m.Workday.employer_id == user.id)
+    if h_id:
+        workdays = db.query(m.Workday).filter(m.Workday.harvest_id == h_id)
+    if e_id:
+        workdays = db.query(m.Workday).filter(m.Workday.employee_id == e_id)
+    if p_more:
+        p_more = decimal.Decimal(p_more)
+        workdays = workdays.filter(m.Workday.pay_per_kg > p_more)
+    if p_less:
+        p_less = decimal.Decimal(p_less)
+        workdays = workdays.filter(m.Workday.pay_per_kg < p_less)
+    if h_more:
+        h_more = decimal.Decimal(h_more)
+        workdays = workdays.filter(m.Workday.harvested > h_more)
+    if h_less:
+        h_less = decimal.Decimal(h_less)
+        workdays = workdays.filter(m.Workday.harvested < h_less)
+    if fruit:
+        workdays = workdays.filter(m.Workday.fruit == fruit)
+    if id:
+        workdays = workdays.filter(m.Workday.id == id)
+
+    workdays = workdays.all()
+    if not workdays:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Couldn't find Workday with specified parameters")
+    return workdays
