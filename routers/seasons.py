@@ -101,8 +101,7 @@ def employees_get(year: int,
                   after: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
                   before: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
                   name: Optional[str] = Query(None, min_length=2, max_length=10, regex=r"[a-zA-Z]+")):
-    season_m = crud.season_get(db, user, year)[0]
-    return crud.employee_get(db=db, user=user, season_id=season_m.id, after=after, before=before, name=name)
+    return crud.employee_get(db=db, user=user, year=year, after=after, before=before, name=name)
 
 
 @router.post("/{year}/expenses", status_code=status.HTTP_201_CREATED,
@@ -115,9 +114,13 @@ def expenses_post(year: int,
 
 
 @router.get("/{year}/expenses", status_code=status.HTTP_200_OK,
-            response_model=sc.ExpenseResponse)
+            response_model=List[sc.ExpenseResponse])
 def expenses_get(year: int,
                  user: m.User = Depends(get_current_user),
-                 db: Session = Depends(get_db)):
-    season_m: m.Season = crud.season_get(db, user, year=year)[0]
-    return season_m.expenses
+                 db: Session = Depends(get_db),
+                 type: Optional[str] = Query(None, min_length=2, max_length=30, regex=r"[a-zA-Z]+"),
+                 after: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
+                 before: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
+                 more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
+                 less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$")):
+    return crud.expense_get(db=db, user=user, year=year, type=type, after=after, before=before, more=more, less=less)

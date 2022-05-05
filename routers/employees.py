@@ -18,10 +18,11 @@ router = APIRouter(
             response_model=List[sc.EmployeeResponse])
 def employees_get_all(user: m.User = Depends(get_current_user),
                       db: Session = Depends(get_db),
+                      season_id: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                       after: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
                       before: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
                       name: Optional[str] = Query(None, min_length=2, max_length=10, regex=r"[a-zA-Z]+")):
-    return crud.employee_get(db=db, user=user, after=after, before=before, name=name)
+    return crud.employee_get(db=db, user=user, after=after, before=before, name=name, season_id=season_id)
 
 
 @router.get("/{e_id}", status_code=status.HTTP_200_OK,

@@ -240,7 +240,8 @@ def employee_create(db: Session, user: m.User, year: int,
 def employee_get(db: Session, user: m.User,
                  id: Optional[int] = None,
                  harvest_id: Optional[int] = None,
-                 season_id: Optional[int] = None,
+                 year: Optional[int] = None,
+                 season_id: Optional[str] = None,
                  name: Optional[str] = None,
                  after: Optional[str] = None,
                  before: Optional[str] = None) -> List[m.Employee]:
@@ -252,7 +253,13 @@ def employee_get(db: Session, user: m.User,
         employee_ids = [e.id for e in harvest.employees]
         employees = employees.filter(m.Employee.id.in_(employee_ids))
     if season_id:
+        try:
+            season_id = int(season_id)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="season_id must be a number") from e
         employees = employees.filter(m.Employee.season_id == season_id)
+    if year:
+        employees = employees.filter(extract('year', m.Employee.start_date) == year)
     if name:
         employees = employees.filter(m.Employee.name == name)
     if after:
@@ -288,6 +295,47 @@ def expense_create(db: Session, year: int, user: m.User,
     db.refresh(expense_m_new)
 
     return expense_m_new
+
+
+def expense_get(db: Session, user: m.User,
+                year: Optional[int] = None,
+                id: Optional[int] = None,
+                season_id: Optional[str] = None,
+                type: Optional[str] = None,
+                after: Optional[str] = None,
+                before: Optional[str] = None,
+                more: Optional[str] = None,
+                less: Optional[str] = None) -> List[m.Expense]:
+    expenses = db.query(m.Expense).filter(m.Expense.owner_id == user.id)
+    if id:
+        expenses = expenses.filter(m.Expense.id == id)
+    if year:
+        expenses = expenses.filter(extract('year', m.Expense.date) == year)
+    if season_id:
+        try:
+            season_id = int(season_id)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="season_id must be a number") from e
+        expenses = expenses.filter(m.Expense.season_id == season_id)
+    if type:
+        expenses = expenses.filter(m.Expense.type == type)
+    if after:
+        after = validate_date_qp(after)
+        expenses = expenses.filter(m.Expense.date > after)
+    if before:
+        before = validate_date_qp(before)
+        expenses = expenses.filter(m.Expense.date < before)
+    if more:
+        more = decimal.Decimal(more)
+        expenses = expenses.filter(m.Expense.amount > more)
+    if less:
+        less = decimal.Decimal(less)
+        expenses = expenses.filter(m.Expense.amount < less)
+    expenses = expenses.all()
+    if not expenses:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Couldn't find Expense with specified parameters")
+    return expenses
 
 
 # WORKDAYS
