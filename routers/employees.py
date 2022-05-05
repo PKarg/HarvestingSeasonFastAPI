@@ -1,6 +1,6 @@
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from auth import get_current_user
@@ -17,9 +17,11 @@ router = APIRouter(
 @router.get("/", status_code=status.HTTP_200_OK,
             response_model=List[sc.EmployeeResponse])
 def employees_get_all(user: m.User = Depends(get_current_user),
-                      db: Session = Depends(get_db)):
-    # TODO add query parameters for filtering
-    return crud.employee_get(db=db, user=user)
+                      db: Session = Depends(get_db),
+                      after: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
+                      before: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
+                      name: Optional[str] = Query(None, min_length=2, max_length=10, regex=r"[a-zA-Z]+")):
+    return crud.employee_get(db=db, user=user, after=after, before=before, name=name)
 
 
 @router.get("/{e_id}", status_code=status.HTTP_200_OK,

@@ -76,9 +76,11 @@ def harvests_update(h_id: int,
             response_model=List[sc.EmployeeResponse])
 def harvests_get_employees(h_id: int,
                            user: m.User = Depends(get_current_user),
-                           db: Session = Depends(get_db)):
-    # TODO add query params for filtering to endpoint
-    return crud.employee_get(db=db, user=user, harvest_id=h_id)
+                           db: Session = Depends(get_db),
+                           after: Optional[str] = Query(None, min_length=10, max_length=10,regex=r"^[0-9]+(-[0-9]+)+$"),
+                           before: Optional[str] = Query(None, min_length=10, max_length=10,regex=r"^[0-9]+(-[0-9]+)+$"),
+                           name: Optional[str] = Query(None, min_length=2, max_length=10, regex=r"[a-zA-Z]+")):
+    return crud.employee_get(db=db, user=user, harvest_id=h_id, after=after, before=before, name=name)
 
 
 @router.get("/{id}/workdays", status_code=status.HTTP_200_OK,

@@ -25,8 +25,8 @@ def seasons_post(season_data: sc.SeasonBase,
             response_model=List[sc.SeasonResponse])
 def seasons_get_all(user: m.User = Depends(get_current_user),
                     db: Session = Depends(get_db),
-                    after: Optional[str] = None,
-                    before: Optional[str] = None,
+                    after: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
+                    before: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
                     limit: Optional[str] = None,
                     offset: Optional[str] = None):
     return crud.season_get(db=db, user=user, after=after, before=before,
@@ -73,8 +73,8 @@ def harvests_post(year: int,
 def harvests_get(year: int,
                  user: m.User = Depends(get_current_user),
                  db: Session = Depends(get_db),
-                 after: Optional[str] = Query(None),
-                 before: Optional[str] = Query(None),
+                 after: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
+                 before: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
                  fruit: Optional[str] = Query(None, min_length=3, max_length=30),
                  p_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                  p_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
@@ -90,16 +90,19 @@ def employees_post(year: int,
                    employee_data: sc.EmployeeCreate,
                    user: m.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
-    return crud.employee_create(db, user, year, employee_data)
+    return crud.employee_create(db=db, user=user, year=year, data=employee_data)
 
 
 @router.get("{year}/employees", status_code=status.HTTP_200_OK,
             response_model=List[sc.EmployeeResponse])
 def employees_get(year: int,
                   user: m.User = Depends(get_current_user),
-                  db: Session = Depends(get_db)):
+                  db: Session = Depends(get_db),
+                  after: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
+                  before: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
+                  name: Optional[str] = Query(None, min_length=2, max_length=10, regex=r"[a-zA-Z]+")):
     season_m = crud.season_get(db, user, year)[0]
-    return season_m.employees
+    return crud.employee_get(db=db, user=user, season_id=season_m.id, after=after, before=before, name=name)
 
 
 @router.post("/{year}/expenses", status_code=status.HTTP_201_CREATED,
