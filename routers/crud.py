@@ -47,16 +47,17 @@ def validate_date_in_season_bounds(o_start: datetime.date, s_start: datetime.dat
     if s_end:
         if o_end and not (s_start <= o_start <= o_end <= s_end):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=f"{o_name} start and end dates have to be between season start and end")
+                                detail=f"{o_name} start and end dates have to be between season start and end: {s_start}:{s_end}")
         elif not (s_start <= o_start <= s_end):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=f"{o_name} start date has to be between season start and end")
+                                detail=f"{o_name} start date has to be between season start and end: {s_start}:{s_end}")
     elif o_end and not s_start <= o_start <= o_end:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"{o_name} start date must be before employee end date, and both can't be before season start date")
+                            detail=f"{o_name} start date must be before employee end date: {s_end},"
+                                   f" and both can't be before season start date: {s_start}")
     elif not s_start <= o_start:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"{o_name} start date can't be before season start date")
+                            detail=f"{o_name} start date can't be before season start date: {s_start}")
 
 
 # SEASONS ===============================================================================================
@@ -295,6 +296,25 @@ def expense_create(db: Session, year: int, user: m.User,
     db.refresh(expense_m_new)
 
     return expense_m_new
+
+
+def expense_update(db: Session, id: int, user: m.User,
+                   data: sc.ExpenseUpdate) -> m.Expense:
+    expense_m_update: m.Expense = db.query(m.Expense)\
+        .filter(m.Expense.owner_id == user.id).filter(m.Expense.id == id).first()
+    if data.amount:
+        expense_m_update.amount = data.amount
+    if data.date:
+        validate_date_in_season_bounds(o_start=data.date, s_start=expense_m_update.season.start_date,
+                                       o_end=data.date, s_end=expense_m_update.season.end_date,
+                                       o_name="Expense")
+        expense_m_update.date = data.date
+    if data.type:
+        expense_m_update.type = data.type
+    db.add(expense_m_update)
+    db.commit()
+    db.refresh(expense_m_update)
+    return expense_m_update
 
 
 def expense_get(db: Session, user: m.User,

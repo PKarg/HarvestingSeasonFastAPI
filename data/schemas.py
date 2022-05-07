@@ -215,7 +215,6 @@ class ExpenseUpdate(ExpenseCreate):
     type: Optional[str]
     date: Optional[datetime.date]
     amount: Optional[decimal.Decimal] = Field(default=None, ge=10, le=100000)
-    season_id: Optional[int]
 
 
 class ExpenseResponse(ExpenseCreate):

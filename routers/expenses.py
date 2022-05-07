@@ -42,8 +42,7 @@ def expense_update(ex_id: int,
                    expense_data: sc.ExpenseUpdate,
                    user: m.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
-    # TODO implement
-    pass
+    return crud.expense_update(db=db, id=ex_id, user=user, data=expense_data)
 
 
 @router.put("/{ex_id}", status_code=status.HTTP_200_OK,
