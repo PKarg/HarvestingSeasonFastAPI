@@ -80,7 +80,7 @@ def harvests_get(year: int,
                  p_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                  h_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                  h_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$")):
-    return crud.harvest_get(db, user, year=year, after=after, before=before,
+    return crud.harvests_get(db, user, year=year, after=after, before=before,
                             fruit=fruit, p_more=p_more, p_less=p_less, h_more=h_more, h_less=h_less)
 
 
@@ -101,7 +101,7 @@ def employees_get(year: int,
                   after: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
                   before: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
                   name: Optional[str] = Query(None, min_length=2, max_length=10, regex=r"[a-zA-Z]+")):
-    return crud.employee_get(db=db, user=user, year=year, after=after, before=before, name=name)
+    return crud.employees_get(db=db, user=user, year=year, after=after, before=before, name=name)
 
 
 @router.post("/{year}/expenses", status_code=status.HTTP_201_CREATED,
@@ -123,4 +123,4 @@ def expenses_get(year: int,
                  before: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
                  more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                  less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$")):
-    return crud.expense_get(db=db, user=user, year=year, type=type, after=after, before=before, more=more, less=less)
+    return crud.expenses_get(db=db, user=user, year=year, type=type, after=after, before=before, more=more, less=less)

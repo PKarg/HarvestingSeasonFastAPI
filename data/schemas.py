@@ -149,7 +149,6 @@ class WorkdayUpdate(WorkdayCreate):
     harvest_id: Optional[int] = None
     harvested: Optional[decimal.Decimal] = Field(default=None, ge=3, le=500)
     pay_per_kg: Optional[decimal.Decimal] = Field(default=None, ge=1.5, le=10)
-    fruit: Optional[str] = Field(default=None, min_length=3, max_length=30)
 
 
 class WorkdayResponse(WorkdayCreate):

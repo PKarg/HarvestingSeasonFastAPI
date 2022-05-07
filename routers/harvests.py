@@ -28,7 +28,7 @@ def harvests_get_all(user: m.User = Depends(get_current_user),
                      h_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                      h_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$")
                      ):
-    return crud.harvest_get(db, user, after=after, before=before, fruit=fruit, year=year, season_id=season_id, p_more=p_more, p_less=p_less, h_more=h_more, h_less=h_less)
+    return crud.harvests_get(db, user, after=after, before=before, fruit=fruit, year=year, season_id=season_id, p_more=p_more, p_less=p_less, h_more=h_more, h_less=h_less)
 
 
 @router.get("/{h_id}", status_code=status.HTTP_200_OK,
@@ -37,7 +37,7 @@ def harvests_get_id(h_id: int,
                     user: m.User = Depends(get_current_user),
                     db: Session = Depends(get_db)):
     try:
-        return crud.harvest_get(db, user, id=h_id)[0]
+        return crud.harvests_get(db, user, id=h_id)[0]
     except IndexError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Object with given id doesn't exist")
 
@@ -47,7 +47,7 @@ def harvests_get_id(h_id: int,
 def harvests_delete(h_id: int,
                     user: m.User = Depends(get_current_user),
                     db: Session = Depends(get_db)):
-    harvest_m = crud.harvest_get(db, user, id=h_id)[0]
+    harvest_m = crud.harvests_get(db, user, id=h_id)[0]
     db.delete(harvest_m)
     db.commit()
 
@@ -80,7 +80,7 @@ def harvests_get_employees(h_id: int,
                            after: Optional[str] = Query(None, min_length=10, max_length=10,regex=r"^[0-9]+(-[0-9]+)+$"),
                            before: Optional[str] = Query(None, min_length=10, max_length=10,regex=r"^[0-9]+(-[0-9]+)+$"),
                            name: Optional[str] = Query(None, min_length=2, max_length=10, regex=r"[a-zA-Z]+")):
-    return crud.employee_get(db=db, user=user, harvest_id=h_id, after=after, before=before, name=name)
+    return crud.employees_get(db=db, user=user, harvest_id=h_id, after=after, before=before, name=name)
 
 
 @router.get("/{id}/workdays", status_code=status.HTTP_200_OK,

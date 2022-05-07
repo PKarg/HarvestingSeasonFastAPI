@@ -24,7 +24,7 @@ def expense_get_all(user: m.User = Depends(get_current_user),
                     more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                     less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                     season_id: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$")):
-    return crud.expense_get(db=db, user=user, season_id=season_id, type=type, after=after,
+    return crud.expenses_get(db=db, user=user, season_id=season_id, type=type, after=after,
                             before=before, more=more, less=less)
 
 
@@ -33,7 +33,7 @@ def expense_get_all(user: m.User = Depends(get_current_user),
 def expense_get_id(ex_id: int,
                    user: m.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
-    return crud.expense_get(db=db, user=user, id=ex_id)[0]
+    return crud.expenses_get(db=db, user=user, id=ex_id)[0]
 
 
 @router.patch("/{ex_id}", status_code=status.HTTP_200_OK,

@@ -42,8 +42,7 @@ def workday_update(w_id: int,
                    workday_data: sc.WorkdayUpdate,
                    user: m.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
-    # TODO implement
-    pass
+    return crud.workday_update(db=db, user=user, id=w_id, data=workday_data)
 
 
 @router.put("/{w_id}", status_code=status.HTTP_200_OK,

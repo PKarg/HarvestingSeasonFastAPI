@@ -22,7 +22,7 @@ def employees_get_all(user: m.User = Depends(get_current_user),
                       after: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
                       before: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
                       name: Optional[str] = Query(None, min_length=2, max_length=10, regex=r"[a-zA-Z]+")):
-    return crud.employee_get(db=db, user=user, after=after, before=before, name=name, season_id=season_id)
+    return crud.employees_get(db=db, user=user, after=after, before=before, name=name, season_id=season_id)
 
 
 @router.get("/{e_id}", status_code=status.HTTP_200_OK,
@@ -30,7 +30,7 @@ def employees_get_all(user: m.User = Depends(get_current_user),
 def employees_get_id(e_id: int,
                      user: m.User = Depends(get_current_user),
                      db: Session = Depends(get_db)):
-    return crud.employee_get(db=db, user=user, id=e_id)[0]
+    return crud.employees_get(db=db, user=user, id=e_id)[0]
 
 
 @router.patch("/{e_id}", status_code=status.HTTP_200_OK,
@@ -66,7 +66,7 @@ def employee_get_harvests(e_id: int,
                           user: m.User = Depends(get_current_user),
                           db: Session = Depends(get_db)):
     # TODO add lacking filters
-    return crud.harvest_get(db=db, user=user, employee_id=e_id)
+    return crud.harvests_get(db=db, user=user, employee_id=e_id)
 
 
 @router.get("/{e_id}/workdays", status_code=status.HTTP_200_OK,
