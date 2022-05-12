@@ -1,6 +1,5 @@
 import datetime
 import decimal
-import traceback
 from typing import Optional, List
 
 from fastapi import HTTPException, status
@@ -68,14 +67,24 @@ def season_get(db: Session, user: m.User,
     return seasons
 
 
-def season_update(db: Session, season: m.Season,
-                  new_start_date: Optional[datetime.date] = None,
-                  new_end_date: Optional[datetime.date] = None) -> m.Season:
-    if new_start_date:
-        season.start_date = new_start_date
-        season.year = new_end_date.year
-    if new_end_date:
-        season.end_date = new_end_date
+def season_update(db: Session, user: m.User, year: int,
+                  data: sc.SeasonUpdate) -> m.Season:
+    season = season_get(db=db, user=user, year=year)[0]
+    if data.start_date:
+        season.start_date = data.start_date
+        season.year = data.start_date.year
+    if data.end_date:
+        season.end_date = data.end_date
+    for e in season.employees:
+        e: m.Employee
+        validate_date_in_season_bounds(o_start=e.start_date, o_end=e.end_date,
+                                       o_name='Employee', s_start=season.start_date,
+                                       s_end=season.end_date)
+    for h in season.harvests:
+        h: m.Harvest
+        validate_date_in_season_bounds(o_start=h.date, o_end=h.date,
+                                       o_name='Employee', s_start=season.start_date,
+                                       s_end=season.end_date)
 
     db.add(season)
     db.commit()
@@ -91,7 +100,7 @@ def harvest_create(db: Session, user: m.User, year: int,
     validate_date_in_season_bounds(o_name="Harvest", o_start=data.date, s_start=season_m.start_date,
                                    s_end=season_m.end_date, o_end=data.date)
 
-    harvest_m_new = m.Harvest(
+    harvest_new = m.Harvest(
         date=data.date,
         price=data.price,
         fruit=data.fruit,
@@ -99,34 +108,38 @@ def harvest_create(db: Session, user: m.User, year: int,
         season_id=season_m.id,
         owner_id=user.id
     )
+    # TODO Change for crud method get_employees
     if data.employee_ids:
-        harvest_m_new.employees = db.query(m.Employee)\
+        harvest_new.employees = db.query(m.Employee)\
             .filter(m.Employee.id.in_(data.employee_ids))\
             .filter(m.Employee.season_id == season_m.id)\
             .all()
 
-    db.add(harvest_m_new)
+    db.add(harvest_new)
     db.commit()
-    db.refresh(harvest_m_new)
-    return harvest_m_new
+    db.refresh(harvest_new)
+    return harvest_new
 
 
 def harvests_get(db: Session, user: m.User,
-                id: Optional[int] = None,
-                employee_id: Optional[int] = None,
-                year: Optional[int] = None,
-                season_id: Optional[int] = None,
-                after: Optional[str] = None,
-                before: Optional[str] = None,
-                fruit: Optional[str] = None,
-                p_more: Optional[str] = None,
-                p_less: Optional[str] = None,
-                h_more: Optional[str] = None,
-                h_less: Optional[str] = None) -> List[m.Harvest]:
+                 id: Optional[int] = None,
+                 ids: Optional[List[int]] = None,
+                 employee_id: Optional[int] = None,
+                 year: Optional[int] = None,
+                 season_id: Optional[int] = None,
+                 after: Optional[str] = None,
+                 before: Optional[str] = None,
+                 fruit: Optional[str] = None,
+                 p_more: Optional[str] = None,
+                 p_less: Optional[str] = None,
+                 h_more: Optional[str] = None,
+                 h_less: Optional[str] = None) -> List[m.Harvest]:
     # TODO add order by options
     harvests = db.query(m.Harvest).filter(m.Harvest.owner_id == user.id)
-    if id:
+    if id and not ids:
         harvests = harvests.filter(m.Harvest.id == id)
+    if ids and not id:
+        harvests = harvests.filter(m.Harvest.id.in_(ids))
     if year:
         harvests = harvests.filter(extract('year', m.Harvest.date) == year)
     if season_id:
@@ -164,42 +177,42 @@ def harvests_get(db: Session, user: m.User,
 
 
 def harvest_update(db: Session, user: m.User, id: int,
-                   data: sc.HarvestUpdate):
-    harvest_m_update: m.Harvest = harvests_get(db, user, id)[0]
+                   data: sc.HarvestUpdate) -> m.Harvest:
+    harvest: m.Harvest = harvests_get(db, user, id)[0]
     if data.date:
-        for e in harvest_m_update.employees:
+        for e in harvest.employees:
             e: m.Employee
             if not validate_date_in_bounds(bounds_start=e.start_date, bounds_end=e.end_date, start_date=data.date):
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                     detail=f"Given date {data.date} conflicts with Employee {e.id}")
     if data.fruit:
-        harvest_m_update.fruit = data.fruit
-        for w in harvest_m_update.workdays:
+        harvest.fruit = data.fruit
+        for w in harvest.workdays:
             w: m.Workday
             w.fruit = data.fruit
             db.add(w)
             db.commit()
     if data.harvested:
         harvested_in_workdays = 0
-        for w in harvest_m_update.workdays:
+        for w in harvest.workdays:
             harvested_in_workdays += w.harvested
         if harvested_in_workdays > data.harvested:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail=f"Amt harvested {data.harvested} can't be lower than sum harvested in Workdays")
-        harvest_m_update.harvested = data.harvested
+        harvest.harvested = data.harvested
     if data.price:
-        harvest_m_update.price = data.price
+        harvest.price = data.price
     if data.employee_ids:
         employees: List[m.Employee] = employees_get(db=db, user=user, ids=data.employee_ids)
         for e in employees:
             if not validate_date_in_bounds(bounds_start=e.start_date, bounds_end=e.end_date, start_date=data.date):
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                     detail=f"Employee with id {e.id} can't be added to Harvest because of date discrepency")
-            harvest_m_update.employees.append(e)
-    db.add(harvest_m_update)
+            harvest.employees.append(e)
+    db.add(harvest)
     db.commit()
-    db.refresh(harvest_m_update)
-    return harvest_m_update
+    db.refresh(harvest)
+    return harvest
 
 
 # EMPLOYEES ======================================================================================
@@ -209,34 +222,35 @@ def employee_create(db: Session, user: m.User, year: int,
     validate_date_in_season_bounds(o_name="Employee", o_start=data.start_date, o_end=data.end_date,
                                    s_start=season_m.start_date, s_end=season_m.end_date)
 
-    employee_m_new = m.Employee(
+    employee_new = m.Employee(
         employer_id=user.id,
         name=data.name,
         season_id=season_m.id,
         start_date=data.start_date,
         end_date=data.end_date
     )
+    # TODO change for crud method get_harvests
     if data.harvest_ids:
-        employee_m_new.harvests = db.query(m.Harvest)\
+        employee_new.harvests = db.query(m.Harvest)\
             .filter(m.Harvest.id.in_(data.harvest_ids))\
             .filter(m.Harvest.season_id == season_m.id).all()
 
-    db.add(employee_m_new)
+    db.add(employee_new)
     db.commit()
-    db.refresh(employee_m_new)
+    db.refresh(employee_new)
 
-    return employee_m_new
+    return employee_new
 
 
 def employees_get(db: Session, user: m.User,
-                 id: Optional[int] = None,
-                 ids: Optional[List[int]] = None,
-                 harvest_id: Optional[int] = None,
-                 year: Optional[int] = None,
-                 season_id: Optional[str] = None,
-                 name: Optional[str] = None,
-                 after: Optional[str] = None,
-                 before: Optional[str] = None) -> List[m.Employee]:
+                  id: Optional[int] = None,
+                  ids: Optional[List[int]] = None,
+                  harvest_id: Optional[int] = None,
+                  year: Optional[int] = None,
+                  season_id: Optional[str] = None,
+                  name: Optional[str] = None,
+                  after: Optional[str] = None,
+                  before: Optional[str] = None) -> List[m.Employee]:
     employees = db.query(m.Employee).filter(m.Employee.employer_id == user.id)
     if id and not ids:
         employees = employees.filter(m.Employee.id == id)
@@ -269,6 +283,38 @@ def employees_get(db: Session, user: m.User,
     return employees
 
 
+def employee_update(db: Session, user: m.User, id: int,
+                    data: sc.EmployeeUpdate) -> m.Employee:
+    employee: m.Employee = employees_get(db, user, id)[0]
+    if data.harvests_ids:
+        harvests: List[m.Harvest] = harvests_get(db=db, user=user, ids=data.harvests_ids)
+        for h in harvests:
+            h: m.Harvest
+            if not validate_date_in_bounds(bounds_start=employee.start_date,
+                                           bounds_end=employee.end_date,
+                                           start_date=h.start_date):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail=f"Harvest {h.id} date incompatible with Employee timeframe")
+            employee.harvests.append(h)
+    if data.name:
+        employee.name = data.name
+    if data.start_date:
+        for h in employee.harvests:
+            if not validate_date_in_bounds(bounds_start=employee.start_date,
+                                           bounds_end=employee.end_date,
+                                           start_date=h.start_date):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail=f"Dates exclude harvest {h.id}")
+            employee.start_date = data.start_date
+            if data.end_date:
+                employee.end_date = data.end_date
+
+    db.add(employee)
+    db.commit()
+    db.refresh(employee)
+    return employee
+
+
 # EXPENSES ======================================================================================
 
 def expense_create(db: Session, year: int, user: m.User,
@@ -276,7 +322,7 @@ def expense_create(db: Session, year: int, user: m.User,
     season_m: m.Season = season_get(db=db, user=user, year=year)[0]
     validate_date_in_season_bounds(o_start=data.date, s_start=season_m.start_date,
                                    s_end=season_m.end_date, o_name="Expense")
-    expense_m_new = m.Expense(
+    expense_new = m.Expense(
         type=data.type,
         amount=data.amount,
         date=data.date,
@@ -284,22 +330,22 @@ def expense_create(db: Session, year: int, user: m.User,
         owner_id=user.id
     )
 
-    db.add(expense_m_new)
+    db.add(expense_new)
     db.commit()
-    db.refresh(expense_m_new)
+    db.refresh(expense_new)
 
-    return expense_m_new
+    return expense_new
 
 
 def expenses_get(db: Session, user: m.User,
-                year: Optional[int] = None,
-                id: Optional[int] = None,
-                season_id: Optional[str] = None,
-                type: Optional[str] = None,
-                after: Optional[str] = None,
-                before: Optional[str] = None,
-                more: Optional[str] = None,
-                less: Optional[str] = None) -> List[m.Expense]:
+                 year: Optional[int] = None,
+                 id: Optional[int] = None,
+                 season_id: Optional[str] = None,
+                 type: Optional[str] = None,
+                 after: Optional[str] = None,
+                 before: Optional[str] = None,
+                 more: Optional[str] = None,
+                 less: Optional[str] = None) -> List[m.Expense]:
     expenses = db.query(m.Expense).filter(m.Expense.owner_id == user.id)
     if id:
         expenses = expenses.filter(m.Expense.id == id)
@@ -334,20 +380,20 @@ def expenses_get(db: Session, user: m.User,
 
 def expense_update(db: Session, id: int, user: m.User,
                    data: sc.ExpenseUpdate) -> m.Expense:
-    expense_m_update: m.Expense = expenses_get(db=db, user=user, id=id)[0]
+    expense: m.Expense = expenses_get(db=db, user=user, id=id)[0]
     if data.amount:
-        expense_m_update.amount = data.amount
+        expense.amount = data.amount
     if data.date:
-        validate_date_in_season_bounds(o_start=data.date, s_start=expense_m_update.season.start_date,
-                                       o_end=data.date, s_end=expense_m_update.season.end_date,
+        validate_date_in_season_bounds(o_start=data.date, s_start=expense.season.start_date,
+                                       o_end=data.date, s_end=expense.season.end_date,
                                        o_name="Expense")
-        expense_m_update.date = data.date
+        expense.date = data.date
     if data.type:
-        expense_m_update.type = data.type
-    db.add(expense_m_update)
+        expense.type = data.type
+    db.add(expense)
     db.commit()
-    db.refresh(expense_m_update)
-    return expense_m_update
+    db.refresh(expense)
+    return expense
 
 
 # WORKDAYS
@@ -356,12 +402,12 @@ def workday_create(db: Session,
                    data: sc.WorkdayCreate,
                    h_id: Optional[int] = None,
                    e_id: Optional[int] = None) -> m.Workday:
-    workday_m_new = m.Workday()
-    workday_m_new.harvest_id = h_id or data.harvest_id
-    workday_m_new.employee_id = e_id or data.employee_id
-    workday_m_new.employer_id = user.id
+    workday_new = m.Workday()
+    workday_new.harvest_id = h_id or data.harvest_id
+    workday_new.employee_id = e_id or data.employee_id
+    workday_new.employer_id = user.id
 
-    if not workday_m_new.harvest_id and workday_m_new.employee_id:
+    if not workday_new.harvest_id and workday_new.employee_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Both Employee and Harvest id are needed to create a Workday")
 
@@ -375,14 +421,14 @@ def workday_create(db: Session,
     if employee_m and employee_m not in harvest_m.employees:
         harvest_m.employees.append(employee_m)
 
-    workday_m_new.fruit = harvest_m.fruit
-    workday_m_new.harvested = data.harvested
-    workday_m_new.pay_per_kg = data.pay_per_kg
+    workday_new.fruit = harvest_m.fruit
+    workday_new.harvested = data.harvested
+    workday_new.pay_per_kg = data.pay_per_kg
 
-    db.add(workday_m_new)
+    db.add(workday_new)
     db.commit()
-    db.refresh(workday_m_new)
-    return workday_m_new
+    db.refresh(workday_new)
+    return workday_new
 
 
 def workdays_get(db: Session,
@@ -428,48 +474,49 @@ def workday_update(db: Session,
                    user: m.User,
                    id: int,
                    data: sc.WorkdayUpdate) -> m.Workday:
-    workday_m_update: m.Workday = workdays_get(db=db, user=user, id=id)[0]
+    workday: m.Workday = workdays_get(db=db, user=user, id=id)[0]
     if data.harvested:
-        workday_m_update.harvested = data.harvested
+        workday.harvested = data.harvested
     if data.pay_per_kg:
-        workday_m_update.pay_per_kg = data.pay_per_kg
+        workday.pay_per_kg = data.pay_per_kg
 
     if data.employee_id and not data.harvest_id:
         employee_m: m.Employee = employees_get(db=db, user=user, id=data.employee_id)[0]
-        harvest_date = workday_m_update.harvest.date
+        harvest_date = workday.harvest.date
         if not validate_date_in_bounds(start_date=harvest_date,
                                        bounds_start=employee_m.start_date,
                                        bounds_end=employee_m.end_date):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="Harvest and Employee dates not compatible")
         else:
-            workday_m_update.employee_id = data.employee_id
+            workday.employee_id = data.employee_id
 
     if data.harvest_id and not data.employee_id:
         harvest_m: m.Harvest = harvests_get(db=db, user=user, id=data.harvest_id)[0]
-        employee_start = workday_m_update.employee.start_date
-        employee_end = workday_m_update.employee.end_date
+        employee_start = workday.employee.start_date
+        employee_end = workday.employee.end_date
         if not validate_date_in_bounds(start_date=harvest_m.date, bounds_start=employee_start, bounds_end=employee_end):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="Harvest and Employee dates not compatible")
-        workday_m_update.harvest_id = data.harvest_id
-        workday_m_update.fruit = harvest_m.fruit
+        workday.harvest_id = data.harvest_id
+        workday.fruit = harvest_m.fruit
 
     if data.harvest_id and data.employee_id:
         employee_m: m.Employee = employees_get(db=db, user=user, id=data.employee_id)[0]
         harvest_m: m.Harvest = harvests_get(db=db, user=user, id=data.harvest_id)[0]
-        if not validate_date_in_bounds(start_date=harvest_m.date, bounds_start=employee_m.start_date, bounds_end=employee_m.end_date):
+        if not validate_date_in_bounds(start_date=harvest_m.date,
+                                       bounds_start=employee_m.start_date,
+                                       bounds_end=employee_m.end_date):
             print(harvest_m.date)
             print(employee_m.start_date)
             print(employee_m.end_date)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="Harvest and Employee dates not compatible")
-        workday_m_update.harvest_id = data.harvest_id
-        workday_m_update.employee_id = data.employee_id
-        workday_m_update.fruit = harvest_m.fruit
+        workday.harvest_id = data.harvest_id
+        workday.employee_id = data.employee_id
+        workday.fruit = harvest_m.fruit
 
-    db.add(workday_m_update)
+    db.add(workday)
     db.commit()
-    db.refresh(workday_m_update)
-    return workday_m_update
-
+    db.refresh(workday)
+    return workday

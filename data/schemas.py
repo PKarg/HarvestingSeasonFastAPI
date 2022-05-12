@@ -106,7 +106,6 @@ class EmployeeUpdate(EmployeeBase):
     start_date: Optional[datetime.date] = None
     end_date: Optional[datetime.date] = None
     harvests_ids: Optional[List[int]] = None
-    season_id: Optional[int] = None
 
 
 class EmployeeResponse(EmployeeBase):

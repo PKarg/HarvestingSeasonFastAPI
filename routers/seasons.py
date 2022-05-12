@@ -46,8 +46,7 @@ def seasons_get_by_year(year: int,
 def seasons_update(year: int, season_data: sc.SeasonUpdate,
                    user: m.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
-    season_m = crud.season_get(db, user, year)[0]
-    return crud.season_update(db, season_m, season_data.start_date, season_data.end_date)
+    return crud.season_update(db=db, user=user, year=year, data=season_data)
 
 
 @router.delete("/{year}", status_code=status.HTTP_200_OK)

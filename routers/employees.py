@@ -36,10 +36,10 @@ def employees_get_id(e_id: int,
 @router.patch("/{e_id}", status_code=status.HTTP_200_OK,
               response_model=sc.EmployeeResponse)
 def employees_update(e_id: int,
+                     employee_data: sc.EmployeeUpdate,
                      user: m.User = Depends(get_current_user),
                      db: Session = Depends(get_db)):
-    # TODO - implement
-    pass
+    return crud.employee_update(db=db, user=user, id=e_id, data=employee_data)
 
 
 @router.put("/{e_id}", status_code=status.HTTP_200_OK,
