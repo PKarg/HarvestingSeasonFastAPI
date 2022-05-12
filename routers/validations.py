@@ -68,7 +68,7 @@ def validate_date_in_bounds(start_date: datetime.date,
     :param bounds_start: bounds start
     :param end_date: object end date (optional)
     :param bounds_end: bounds end
-    :return:
+    :return: bool
     """
     if bounds_end:
         if end_date and not (bounds_start <= start_date <= end_date <= bounds_end):

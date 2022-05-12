@@ -79,7 +79,6 @@ class HarvestUpdate(HarvestBase):
     harvested: Optional[decimal.Decimal] = Field(default=None, ge=1, le=5000)
     date: Optional[datetime.date] = None
     price: Optional[decimal.Decimal] = Field(default=None, ge=0.5, le=100)
-    season_id: Optional[int] = None
     employee_ids: Optional[List[int]] = None
 
     class Config:

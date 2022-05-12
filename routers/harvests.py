@@ -52,24 +52,14 @@ def harvests_delete(h_id: int,
     db.commit()
 
 
-@router.put("/{h_id}", status_code=status.HTTP_200_OK,
-            response_model=sc.HarvestResponse)
-def harvests_change(h_id: int,
-                    harvest_data: sc.HarvestReplace,
-                    user: m.User = Depends(get_current_user),
-                    db: Session = Depends(get_db)):
-    # TODO implement
-    pass
-
-
 @router.patch("/{h_id}", status_code=status.HTTP_200_OK,
               response_model=sc.HarvestResponse)
 def harvests_update(h_id: int,
                     harvest_data: sc.HarvestUpdate,
                     user: m.User = Depends(get_current_user),
                     db: Session = Depends(get_db)):
-    # TODO implement
-    pass
+    harvest_m_updated = crud.harvest_update(db=db, user=user, id=h_id, data=harvest_data)
+    return harvest_m_updated
 
 
 @router.get("/{h_id}/employees", status_code=status.HTTP_200_OK,

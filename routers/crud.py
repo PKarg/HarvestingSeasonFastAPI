@@ -163,6 +163,45 @@ def harvests_get(db: Session, user: m.User,
     return harvests
 
 
+def harvest_update(db: Session, user: m.User, id: int,
+                   data: sc.HarvestUpdate):
+    harvest_m_update: m.Harvest = harvests_get(db, user, id)[0]
+    if data.date:
+        for e in harvest_m_update.employees:
+            e: m.Employee
+            if not validate_date_in_bounds(bounds_start=e.start_date, bounds_end=e.end_date, start_date=data.date):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail=f"Given date {data.date} conflicts with Employee {e.id}")
+    if data.fruit:
+        harvest_m_update.fruit = data.fruit
+        for w in harvest_m_update.workdays:
+            w: m.Workday
+            w.fruit = data.fruit
+            db.add(w)
+            db.commit()
+    if data.harvested:
+        harvested_in_workdays = 0
+        for w in harvest_m_update.workdays:
+            harvested_in_workdays += w.harvested
+        if harvested_in_workdays > data.harvested:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"Amt harvested {data.harvested} can't be lower than sum harvested in Workdays")
+        harvest_m_update.harvested = data.harvested
+    if data.price:
+        harvest_m_update.price = data.price
+    if data.employee_ids:
+        employees: List[m.Employee] = employees_get(db=db, user=user, ids=data.employee_ids)
+        for e in employees:
+            if not validate_date_in_bounds(bounds_start=e.start_date, bounds_end=e.end_date, start_date=data.date):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail=f"Employee with id {e.id} can't be added to Harvest because of date discrepency")
+            harvest_m_update.employees.append(e)
+    db.add(harvest_m_update)
+    db.commit()
+    db.refresh(harvest_m_update)
+    return harvest_m_update
+
+
 # EMPLOYEES ======================================================================================
 def employee_create(db: Session, user: m.User, year: int,
                     data: sc.EmployeeCreate) -> m.Employee:
@@ -191,6 +230,7 @@ def employee_create(db: Session, user: m.User, year: int,
 
 def employees_get(db: Session, user: m.User,
                  id: Optional[int] = None,
+                 ids: Optional[List[int]] = None,
                  harvest_id: Optional[int] = None,
                  year: Optional[int] = None,
                  season_id: Optional[str] = None,
@@ -198,8 +238,10 @@ def employees_get(db: Session, user: m.User,
                  after: Optional[str] = None,
                  before: Optional[str] = None) -> List[m.Employee]:
     employees = db.query(m.Employee).filter(m.Employee.employer_id == user.id)
-    if id:
+    if id and not ids:
         employees = employees.filter(m.Employee.id == id)
+    if ids and not id:
+        employees = employees.filter(m.Employee.id.in_(ids))
     if harvest_id:
         harvest: m.Harvest = harvests_get(db=db, user=user, id=harvest_id)[0]
         employee_ids = [e.id for e in harvest.employees]
@@ -293,9 +335,6 @@ def expenses_get(db: Session, user: m.User,
 def expense_update(db: Session, id: int, user: m.User,
                    data: sc.ExpenseUpdate) -> m.Expense:
     expense_m_update: m.Expense = expenses_get(db=db, user=user, id=id)[0]
-    if not expense_m_update:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Couldn't find Expense with specified parameters")
     if data.amount:
         expense_m_update.amount = data.amount
     if data.date:
@@ -347,15 +386,15 @@ def workday_create(db: Session,
 
 
 def workdays_get(db: Session,
-                user: m.User,
-                id: Optional[int] = None,
-                h_id: Optional[int] = None,
-                e_id: Optional[int] = None,
-                fruit: Optional[str] = None,
-                h_more: Optional[str] = None,
-                h_less: Optional[str] = None,
-                p_more: Optional[str] = None,
-                p_less: Optional[str] = None) -> List[m.Workday]:
+                 user: m.User,
+                 id: Optional[int] = None,
+                 h_id: Optional[int] = None,
+                 e_id: Optional[int] = None,
+                 fruit: Optional[str] = None,
+                 h_more: Optional[str] = None,
+                 h_less: Optional[str] = None,
+                 p_more: Optional[str] = None,
+                 p_less: Optional[str] = None) -> List[m.Workday]:
     workdays = db.query(m.Workday).filter(m.Workday.employer_id == user.id)
     if h_id:
         workdays = db.query(m.Workday).filter(m.Workday.harvest_id == h_id)
@@ -389,11 +428,7 @@ def workday_update(db: Session,
                    user: m.User,
                    id: int,
                    data: sc.WorkdayUpdate) -> m.Workday:
-    # TODO think about how to implement updating relationships with employees and harvests
     workday_m_update: m.Workday = workdays_get(db=db, user=user, id=id)[0]
-    if not workday_m_update:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Couldn't find Workday with specified id")
     if data.harvested:
         workday_m_update.harvested = data.harvested
     if data.pay_per_kg:
