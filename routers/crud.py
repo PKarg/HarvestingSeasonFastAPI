@@ -110,10 +110,7 @@ def harvest_create(db: Session, user: m.User, year: int,
     )
     # TODO Change for crud method get_employees
     if data.employee_ids:
-        harvest_new.employees = db.query(m.Employee)\
-            .filter(m.Employee.id.in_(data.employee_ids))\
-            .filter(m.Employee.season_id == season_m.id)\
-            .all()
+        harvest_new_employees = employees_get(db=db, user=user, ids=data.employee_ids)
 
     db.add(harvest_new)
     db.commit()

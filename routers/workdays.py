@@ -45,19 +45,10 @@ def workday_update(w_id: int,
     return crud.workday_update(db=db, user=user, id=w_id, data=workday_data)
 
 
-@router.put("/{w_id}", status_code=status.HTTP_200_OK,
-            response_model=sc.WorkdayResponse)
-def workday_replace(w_id: int,
-                    workday_data: sc.WorkdayCreate,
-                    user: m.User = Depends(get_current_user),
-                    db: Session = Depends(get_db)):
-    # TODO implement
-    pass
-
-
 @router.delete("/{w_id}", status_code=status.HTTP_200_OK)
 def workday_update(w_id: int,
                    user: m.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
-    # TODO implement
-    pass
+    workday_to_delete: m.Workday = crud.workdays_get(db=db, user=user, id=w_id)[0]
+    db.delete(workday_to_delete)
+    db.commit()

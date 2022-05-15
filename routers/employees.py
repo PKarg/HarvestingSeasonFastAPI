@@ -42,31 +42,32 @@ def employees_update(e_id: int,
     return crud.employee_update(db=db, user=user, id=e_id, data=employee_data)
 
 
-@router.put("/{e_id}", status_code=status.HTTP_200_OK,
-            response_model=sc.EmployeeResponse)
-def employees_replace(e_id: int,
-                      employee_data: sc.EmployeeReplace,
-                      user: m.User = Depends(get_current_user),
-                      db: Session = Depends(get_db)):
-    # TODO - implement
-    pass
-
-
 @router.delete("/{e_id}", status_code=status.HTTP_200_OK)
 def employee_delete(e_id: int,
                     user: m.User = Depends(get_current_user),
                     db: Session = Depends(get_db)):
-    # TODO - implement
-    pass
+    employee_to_delete: m.Employee = crud.employees_get(id=e_id, user=user, db=db)[0]
+    db.delete(employee_to_delete)
+    db.commit()
 
 
 @router.get("/{e_id}/harvests", status_code=status.HTTP_200_OK,
             response_model=List[sc.HarvestResponse])
 def employee_get_harvests(e_id: int,
                           user: m.User = Depends(get_current_user),
-                          db: Session = Depends(get_db)):
+                          db: Session = Depends(get_db),
+                          after: Optional[str] = Query(None),
+                          before: Optional[str] = Query(None),
+                          fruit: Optional[str] = Query(None, min_length=5, max_length=20),
+                          p_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
+                          p_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
+                          h_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
+                          h_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$")):
     # TODO add lacking filters
-    return crud.harvests_get(db=db, user=user, employee_id=e_id)
+    return crud.harvests_get(db=db, user=user, employee_id=e_id,
+                             after=after, before=before, fruit=fruit,
+                             p_more=p_more, p_less=p_less, h_more=h_more,
+                             h_less=h_less)
 
 
 @router.get("/{e_id}/workdays", status_code=status.HTTP_200_OK,

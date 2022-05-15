@@ -59,5 +59,6 @@ def expense_replace(ex_id: int,
 def expense_update(ex_id: int,
                    user: m.User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
-    # TODO implement
-    pass
+    expense_to_delete = crud.expenses_get(db=db, user=user, id=ex_id)[0]
+    db.delete(expense_to_delete)
+    db.commit()
