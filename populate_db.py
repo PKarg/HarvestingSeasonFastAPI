@@ -1,16 +1,13 @@
 import datetime
 import decimal
 import random
-import random as rand
 
 from sqlalchemy.exc import IntegrityError
 
-from data.database import SessionLocal
-from data import models as m
+from project.data.database import SessionLocal
+from project.data import models as m
 
 from sqlalchemy.orm import Session
-
-from routers import crud
 
 
 def generate_random_seasons(start_year: int, end_year: int, user_id: int, db: Session) -> None:

@@ -4,7 +4,7 @@ from typing import Optional
 
 from fastapi import HTTPException
 from starlette import status
-from data import models as m
+from project.data import models as m
 
 
 def validate_date_qp(qp: str) -> datetime.date:

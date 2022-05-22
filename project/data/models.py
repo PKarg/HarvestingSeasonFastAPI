@@ -34,7 +34,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
 
-    seasons = relationship("Season", back_populates="owner")
+    seasons = relationship("Season", back_populates="owner", cascade="all, delete")
 
 
 class Season(Base):

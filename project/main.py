@@ -8,12 +8,12 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.security import HTTPBasic, HTTPBasicCredentials, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from dependencies import get_db
-from data import schemas as sc
-from data.models import Base, User
-from auth import authenticate_user, token_exception, create_access_token, get_password_hash
-from data.database import engine
-from routers import seasons, harvests, employees, expenses, workdays
+from .dependencies import get_db
+from .data import schemas as sc
+from .data.models import Base, User
+from .auth import authenticate_user, token_exception, create_access_token, get_password_hash
+from .data.database import engine
+from .routers import seasons, harvests, employees, expenses, workdays
 
 
 # TODO add tests for existing endpoints
@@ -50,7 +50,7 @@ async def openapi(username: str = Depends(get_current_username)):
     return get_openapi(title=app.title, version=app.version, routes=app.routes)
 
 
-@app.post("/user")
+@app.post("/user", status_code=status.HTTP_201_CREATED)
 async def create_new_user(user: sc.UserCreate, db: Session = Depends(get_db),
                           username: str = Depends(get_current_username)):
     user_m = db.query(User).filter(User.username == user.username).first()
@@ -72,7 +72,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
-
         raise token_exception()
     token_expires = timedelta()
     access_token = create_access_token(user.username,

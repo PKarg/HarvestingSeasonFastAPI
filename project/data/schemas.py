@@ -1,7 +1,6 @@
 import datetime
 import decimal
 import decimal as dec
-import json
 from typing import Optional, List
 
 from pydantic import BaseModel, Field, validator
@@ -235,11 +234,6 @@ class SeasonBase(BaseModel):
         else:
             start_date = start_date
         return start_date
-
-    @validator("end_date", pre=True, always=True)
-    def set_end_date(cls, end_date: Optional[datetime.date] = None):
-        end_date = datetime.datetime.now(datetime.timezone.utc).date() if end_date is None else end_date
-        return end_date
 
 
 class SeasonUpdate(SeasonBase):

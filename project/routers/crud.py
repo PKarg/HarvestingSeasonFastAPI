@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import extract
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
-from data import models as m, schemas as sc
+from project.data import models as m, schemas as sc
 from .validations import validate_date_qp, validate_date_in_bounds, validate_date_in_season_bounds, validate_fruit_qp
 
 

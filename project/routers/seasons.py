@@ -1,11 +1,11 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
 
-from auth import get_current_user
-from data import models as m, schemas as sc
-from dependencies import get_db
+from project.auth import get_current_user
+from project.data import models as m, schemas as sc
+from project.dependencies import get_db
 from . import crud
 
 router = APIRouter(
@@ -80,7 +80,7 @@ def harvests_get(year: int,
                  h_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                  h_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$")):
     return crud.harvests_get(db, user, year=year, after=after, before=before,
-                            fruit=fruit, p_more=p_more, p_less=p_less, h_more=h_more, h_less=h_less)
+                             fruit=fruit, p_more=p_more, p_less=p_less, h_more=h_more, h_less=h_less)
 
 
 @router.post("/{year}/employees", status_code=status.HTTP_201_CREATED,
