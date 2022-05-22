@@ -17,6 +17,8 @@ from .routers import seasons, harvests, employees, expenses, workdays
 
 
 # TODO add tests for existing endpoints
+# TODO add dependency handling some common query parameters
+#   https://fastapi.tiangolo.com/tutorial/dependencies/
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
