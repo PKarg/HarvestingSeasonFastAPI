@@ -2,14 +2,14 @@ import datetime
 from typing import Tuple, Optional, List
 
 from pytest import fixture
-import requests
+from requests import Session
 from fastapi.testclient import TestClient
 
 from project.main import app
 from .main_test import create_user_and_get_token
 
 
-client: requests.Session = TestClient(app)
+client: Session = TestClient(app)
 
 
 def create_harvest(oauth_header: dict, s_year: int, price: int,
@@ -219,4 +219,34 @@ def test_season_create_employee_with_harvests_fail_incompatible_dates():
 
 # TODO
 def test_season_create_employee_with_harvests_fail_different_seasons():
+    pass
+
+
+# TODO
+def test_season_create_expense():
+    pass
+
+
+# TODO
+def test_season_create_expense_fail_unauthorized():
+    pass
+
+
+# TODO
+def test_season_create_expense_fail_incomplete_data():
+    pass
+
+
+# TODO
+def test_season_create_expense_nonexistent_season():
+    pass
+
+
+# TODO
+def test_season_get_expense():
+    pass
+
+
+# TODO
+def test_season_get_expense_fail_unauthorized():
     pass

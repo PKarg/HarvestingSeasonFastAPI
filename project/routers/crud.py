@@ -1,6 +1,6 @@
 import datetime
 import decimal
-from typing import Optional, List
+from typing import Optional, List, Union
 
 from fastapi import HTTPException, status
 from sqlalchemy import extract
@@ -108,9 +108,9 @@ def harvest_create(db: Session, user: m.User, year: int,
         season_id=season_m.id,
         owner_id=user.id
     )
-    # TODO Change for crud method get_employees
+
     if data.employee_ids:
-        harvest_new_employees = employees_get(db=db, user=user, ids=data.employee_ids)
+        harvest_new.employees = employees_get(db=db, user=user, ids=data.employee_ids)
 
     db.add(harvest_new)
     db.commit()
@@ -119,8 +119,7 @@ def harvest_create(db: Session, user: m.User, year: int,
 
 
 def harvests_get(db: Session, user: m.User,
-                 id: Optional[int] = None,
-                 ids: Optional[List[int]] = None,
+                 id: Optional[Union[int, List[int]]] = None,
                  employee_id: Optional[int] = None,
                  year: Optional[int] = None,
                  season_id: Optional[int] = None,
@@ -133,10 +132,10 @@ def harvests_get(db: Session, user: m.User,
                  h_less: Optional[str] = None) -> List[m.Harvest]:
     # TODO add order by options
     harvests = db.query(m.Harvest).filter(m.Harvest.owner_id == user.id)
-    if id and not ids:
+    if id and type(id) == int:
         harvests = harvests.filter(m.Harvest.id == id)
-    if ids and not id:
-        harvests = harvests.filter(m.Harvest.id.in_(ids))
+    if id and type(id) == List[int]:
+        harvests = harvests.filter(m.Harvest.id.in_(id))
     if year:
         harvests = harvests.filter(extract('year', m.Harvest.date) == year)
     if season_id:
@@ -284,7 +283,7 @@ def employee_update(db: Session, user: m.User, id: int,
                     data: sc.EmployeeUpdate) -> m.Employee:
     employee: m.Employee = employees_get(db, user, id)[0]
     if data.harvests_ids:
-        harvests: List[m.Harvest] = harvests_get(db=db, user=user, ids=data.harvests_ids)
+        harvests: List[m.Harvest] = harvests_get(db=db, user=user, id=data.harvests_ids)
         for h in harvests:
             h: m.Harvest
             if not validate_date_in_bounds(bounds_start=employee.start_date,
