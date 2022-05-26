@@ -27,8 +27,9 @@ def create_harvest(oauth_header: dict, s_year: int, price: int,
     return response
 
 
-def create_employee(oauth_header: dict, s_year: int, name: str,
-                    start_date: datetime.date, end_date: Optional[datetime.date] = None,
+def create_employee(oauth_header: dict, s_year: int, name: Optional[str] = None,
+                    start_date: Optional[datetime.date] = None,
+                    end_date: Optional[datetime.date] = None,
                     harvest_ids: Optional[List] = None):
     body = {
         "name": name,
@@ -83,7 +84,6 @@ def test_season_create_no_end_date(create_user_and_get_token):
     oauth_header = create_user_and_get_token
     response = create_season(oauth_header=oauth_header, start_date=datetime.date(2777, 5, 22))
     assert response.status_code == 201
-    assert response.json()
     assert response.json()['start_date'] == "2777-05-22"
     assert response.json()['year'] == 2777
     assert response.json()['end_date'] is None
@@ -93,7 +93,6 @@ def test_season_create_no_start_date(create_user_and_get_token):
     oauth_header = create_user_and_get_token
     response = create_season(oauth_header=oauth_header)
     assert response.status_code == 201
-    assert response.json()
     assert response.json()['start_date'] == datetime.date.today().isoformat()
     assert response.json()['year'] == datetime.date.today().year
     assert response.json()['end_date'] is None
@@ -158,7 +157,6 @@ def test_seasons_create_harvest_no_employees(create_season_fix):
                               fruit="raspberry", date=datetime.date(2777, 6, 18),
                               harvested=666, price=6)
     assert response.status_code == 201
-    assert response.json()
     assert response.json()['fruit'] == "raspberry"
     assert response.json()['date'] == datetime.date(2777, 6, 18).isoformat()
 
@@ -191,20 +189,25 @@ def test_season_get_harvests_all(create_harvest_fix):
     oauth_header, season, harvest = create_harvest_fix
     response = client.get(url=f"seasons/{season['year']}/harvests", headers=oauth_header)
     assert response.status_code == 200
-    assert response.json()
     assert type(response.json()) is list
     assert type(response.json()[0]) is dict
     assert response.json()[0]['date'] == harvest['date']
 
 
-# TODO
 def test_season_get_harvests_all_fail_unauthorized(create_season_fix):
-    pass
+    oauth_header, season = create_season_fix
+    response = client.get(url=f"seasons/{season['year']}/harvests", headers=())
+    assert response.status_code == 401
 
 
-# TODO
-def test_season_create_employee_no_end_date():
-    pass
+def test_season_create_employee_no_end_date(create_season_fix):
+    oauth_header, season = create_season_fix
+    response = create_employee(oauth_header=oauth_header, s_year=season['year'],
+                               name="Stefan", start_date=datetime.date(2777, 6, 16))
+    assert response.status_code == 201
+    assert response.json()
+    assert response.json()['name'] == "Stefan"
+    assert response.json()['start_date'] == datetime.date(2777, 6, 16).isoformat()
 
 
 def test_seasons_create_employee_end_date(create_season_fix):
@@ -219,28 +222,51 @@ def test_seasons_create_employee_end_date(create_season_fix):
     assert response.json()['end_date'] == datetime.date(2777, 8, 17).isoformat()
 
 
-# TODO
-def test_season_create_employee_fail_incomplete_data():
-    pass
+def test_season_create_employee_fail_incomplete_data(create_season_fix):
+    oauth_header, season = create_season_fix
+    response = create_employee(oauth_header=oauth_header, s_year=season['year'],
+                               name=None, start_date=datetime.date(2777, 6, 16),
+                               end_date=datetime.date(2777, 8, 17))
+    assert response.status_code == 422
+
+
+def test_season_create_employee_fail_incompatible_dates(create_season_fix):
+    oauth_header, season = create_season_fix
+    response = create_employee(oauth_header=oauth_header, s_year=season['year'],
+                               name="Stefan", start_date=datetime.date(2777, 9, 16),
+                               end_date=datetime.date(2777, 7, 17))
+    assert response.status_code == 422
+
+
+def test_season_create_employee_fail_dates_out_of_bounds(create_season_fix):
+    oauth_header, season = create_season_fix
+    response_a = create_employee(oauth_header=oauth_header, s_year=season['year'],
+                                 name="Stefan", start_date=datetime.date(2777, 3, 16),
+                                 end_date=datetime.date(2777, 7, 17))
+    response_b = create_employee(oauth_header=oauth_header, s_year=season['year'],
+                                 name="Stefan", start_date=datetime.date(2777, 5, 28),
+                                 end_date=datetime.date(2777, 10, 17))
+    assert response_a.status_code == 422
+    assert response_b.status_code == 422
+
+
+def test_season_create_harvest_with_employees(create_season_fix):
+    oauth_header, season = create_season_fix
+    employee = create_employee(oauth_header=oauth_header, s_year=season['year'],
+                               name="Stefan", start_date=datetime.date(2777, 5, 27),
+                               end_date=datetime.date(2777, 7, 17))
+    response = create_harvest(oauth_header, season['year'],
+                              date=datetime.date(2777, 6, 12),
+                              harvested=12, price=1, fruit="raspberry",
+                              employee_ids=[employee.json()['id']])
+    assert response.status_code == 201
+    assert type(response.json()) is dict
+    assert type(response.json()['employees']) is list
+    assert type(response.json()['employees'][0]) is dict
 
 
 # TODO
-def test_season_create_employee_fail_incompatible_dates():
-    pass
-
-
-# TODO
-def test_season_create_employee_fail_dates_out_of_bounds():
-    pass
-
-
-# TODO
-def test_season_create_harvest_with_employees():
-    pass
-
-
-# TODO
-def test_season_create_harvest_with_employees_fail_incompatible_dates():
+def test_season_create_harvest_with_employees_fail_incompatible_dates(create_season_fix):
     pass
 
 
