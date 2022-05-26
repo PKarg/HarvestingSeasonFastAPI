@@ -43,17 +43,17 @@ def validate_date_in_season_bounds(o_start: datetime.date, s_start: datetime.dat
     """
     if s_end:
         if o_end and not (s_start <= o_start <= o_end <= s_end):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail=f"{o_name} start and end dates have to be between season start and end: {s_start}:{s_end}")
         elif not (s_start <= o_start <= s_end):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail=f"{o_name} start date has to be between season start and end: {s_start}:{s_end}")
     elif o_end and not (s_start <= o_start <= o_end):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail=f"{o_name} start date must be before employee end date: {s_end},"
                                    f" and both can't be before season start date: {s_start}")
     elif not s_start <= o_start:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail=f"{o_name} start date can't be before season start date: {s_start}")
 
 

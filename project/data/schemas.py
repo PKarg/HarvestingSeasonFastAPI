@@ -3,6 +3,7 @@ import decimal
 import decimal as dec
 from typing import Optional, List
 
+from fastapi import HTTPException, status
 from pydantic import BaseModel, Field, validator
 
 from . import models
@@ -36,7 +37,7 @@ class HarvestBase(BaseModel):
     fruit: models.Fruit
 
     @validator("harvested", pre=True, always=True)
-    def check_decimals_harvested(cls, harvested: dec.Decimal):
+    def check_decimals_harvested_harvest(cls, harvested: dec.Decimal):
         if dec.Decimal(harvested).same_quantum(dec.Decimal("1.0")):
             harvested = harvested
         else:
@@ -125,7 +126,7 @@ class WorkdayCreate(BaseModel):
     pay_per_kg: decimal.Decimal = Field(ge=1.5, le=10)
 
     @validator("harvested", pre=True, always=True)
-    def check_decimals_harvested(cls, harvested: dec.Decimal):
+    def check_decimals_harvested_workday(cls, harvested: dec.Decimal):
         if dec.Decimal(harvested).same_quantum(dec.Decimal("1.0")):
             harvested = harvested
         else:

@@ -18,17 +18,22 @@ def season_create(db: Session, user: m.User,
         season = m.Season(year=start_date.year,
                           start_date=start_date,
                           owner_id=user.id)
-        if end_date and end_date.year == start_date.year:
+
+        if end_date and end_date < start_date:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail=f"Start date {start_date} can't be after end date {end_date}")
+        elif end_date and end_date.year == start_date.year:
             season.end_date = end_date
         elif end_date:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Dates need to have the sane year")
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail="Dates need to have the same year")
         season.owner = user
         db.add(season)
         db.commit()
         db.refresh(season)
         return season
     except IntegrityError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail="Season with given year already exists") from e
 
 
@@ -179,7 +184,7 @@ def harvest_update(db: Session, user: m.User, id: int,
         for e in harvest.employees:
             e: m.Employee
             if not validate_date_in_bounds(bounds_start=e.start_date, bounds_end=e.end_date, start_date=data.date):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                     detail=f"Given date {data.date} conflicts with Employee {e.id}")
     if data.fruit:
         harvest.fruit = data.fruit
@@ -193,7 +198,7 @@ def harvest_update(db: Session, user: m.User, id: int,
         for w in harvest.workdays:
             harvested_in_workdays += w.harvested
         if harvested_in_workdays > data.harvested:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail=f"Amt harvested {data.harvested} can't be lower than sum harvested in Workdays")
         harvest.harvested = data.harvested
     if data.price:
@@ -202,7 +207,7 @@ def harvest_update(db: Session, user: m.User, id: int,
         employees: List[m.Employee] = employees_get(db=db, user=user, ids=data.employee_ids)
         for e in employees:
             if not validate_date_in_bounds(bounds_start=e.start_date, bounds_end=e.end_date, start_date=data.date):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                     detail=f"Employee with id {e.id} can't be added to Harvest because of date discrepency")
             harvest.employees.append(e)
     db.add(harvest)
@@ -260,7 +265,7 @@ def employees_get(db: Session, user: m.User,
         try:
             season_id = int(season_id)
         except ValueError as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="season_id must be a number") from e
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="season_id must be a number") from e
         employees = employees.filter(m.Employee.season_id == season_id)
     if year:
         employees = employees.filter(extract('year', m.Employee.start_date) == year)
@@ -289,7 +294,7 @@ def employee_update(db: Session, user: m.User, id: int,
             if not validate_date_in_bounds(bounds_start=employee.start_date,
                                            bounds_end=employee.end_date,
                                            start_date=h.start_date):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                     detail=f"Harvest {h.id} date incompatible with Employee timeframe")
             employee.harvests.append(h)
     if data.name:
@@ -299,7 +304,7 @@ def employee_update(db: Session, user: m.User, id: int,
             if not validate_date_in_bounds(bounds_start=employee.start_date,
                                            bounds_end=employee.end_date,
                                            start_date=h.start_date):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                     detail=f"Dates exclude harvest {h.id}")
             employee.start_date = data.start_date
             if data.end_date:
@@ -351,7 +356,7 @@ def expenses_get(db: Session, user: m.User,
         try:
             season_id = int(season_id)
         except ValueError as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="season_id must be a number") from e
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="season_id must be a number") from e
         expenses = expenses.filter(m.Expense.season_id == season_id)
     if type:
         expenses = expenses.filter(m.Expense.type == type)
@@ -404,14 +409,14 @@ def workday_create(db: Session,
     workday_new.employer_id = user.id
 
     if not workday_new.harvest_id and workday_new.employee_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail="Both Employee and Harvest id are needed to create a Workday")
 
     harvest_m: m.Harvest = harvests_get(db=db, user=user, id=h_id)[0]
     employee_m: m.Employee = employees_get(db=db, user=user, id=e_id)[0]
 
     if harvest_m.season_id != employee_m.season_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail="Employee and Harvest must belong to the same season")
 
     if employee_m and employee_m not in harvest_m.employees:
@@ -482,7 +487,7 @@ def workday_update(db: Session,
         if not validate_date_in_bounds(start_date=harvest_date,
                                        bounds_start=employee_m.start_date,
                                        bounds_end=employee_m.end_date):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail="Harvest and Employee dates not compatible")
         else:
             workday.employee_id = data.employee_id
@@ -492,7 +497,7 @@ def workday_update(db: Session,
         employee_start = workday.employee.start_date
         employee_end = workday.employee.end_date
         if not validate_date_in_bounds(start_date=harvest_m.date, bounds_start=employee_start, bounds_end=employee_end):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail="Harvest and Employee dates not compatible")
         workday.harvest_id = data.harvest_id
         workday.fruit = harvest_m.fruit
@@ -506,7 +511,7 @@ def workday_update(db: Session,
             print(harvest_m.date)
             print(employee_m.start_date)
             print(employee_m.end_date)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail="Harvest and Employee dates not compatible")
         workday.harvest_id = data.harvest_id
         workday.employee_id = data.employee_id

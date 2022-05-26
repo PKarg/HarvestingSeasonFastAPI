@@ -13,7 +13,7 @@ client: Session = TestClient(app)
 
 
 def create_harvest(oauth_header: dict, s_year: int, price: int,
-                   harvested: int, date: datetime.date, fruit: str,
+                   harvested: int, date: datetime.date, fruit: Optional[str] = None,
                    employee_ids: Optional[List] = None):
     body = {
         "price": price,
@@ -41,9 +41,9 @@ def create_employee(oauth_header: dict, s_year: int, name: str,
     return response
 
 
-def create_season(oauth_header: dict, start_date: datetime.date,
+def create_season(oauth_header: dict, start_date: Optional[datetime.date] = None,
                   end_date: Optional[datetime.date] = None):
-    body = {"start_date": start_date.isoformat(),
+    body = {"start_date": start_date.isoformat() if start_date else None,
             "end_date": end_date.isoformat() if end_date else None}
     response = client.post(url="/seasons", json=body,
                            headers=oauth_header, allow_redirects=True)
@@ -83,9 +83,19 @@ def test_season_create_no_end_date(create_user_and_get_token):
     oauth_header = create_user_and_get_token
     response = create_season(oauth_header=oauth_header, start_date=datetime.date(2777, 5, 22))
     assert response.status_code == 201
-    assert response.json() is not None
+    assert response.json()
     assert response.json()['start_date'] == "2777-05-22"
     assert response.json()['year'] == 2777
+    assert response.json()['end_date'] is None
+
+
+def test_season_create_no_start_date(create_user_and_get_token):
+    oauth_header = create_user_and_get_token
+    response = create_season(oauth_header=oauth_header)
+    assert response.status_code == 201
+    assert response.json()
+    assert response.json()['start_date'] == datetime.date.today().isoformat()
+    assert response.json()['year'] == datetime.date.today().year
     assert response.json()['end_date'] is None
 
 
@@ -98,19 +108,26 @@ def test_season_create_end_date(create_user_and_get_token):
     assert response.json()['end_date'] == "2777-09-22"
 
 
-# TODO
-def test_season_create_fail_wrong_date():
-    pass
+def test_season_create_fail_wrong_date(create_user_and_get_token):
+    oauth_header = create_user_and_get_token
+    response = create_season(oauth_header=oauth_header, start_date=datetime.date(2777, 5, 22),
+                             end_date=datetime.date(2777, 4, 22))
+    assert response.status_code == 422
 
 
-# TODO
-def test_season_create_fail_year_exists():
-    pass
+def test_season_create_fail_year_exists(create_user_and_get_token):
+    oauth_header = create_user_and_get_token
+    create_season(oauth_header=oauth_header, start_date=datetime.date(2022, 5, 24),
+                  end_date=datetime.date(2022, 8, 13))
+    response = create_season(oauth_header=oauth_header, start_date=datetime.date(2022, 5, 12),
+                             end_date=datetime.date(2022, 9, 27))
+    assert response.status_code == 422
 
 
-# TODO
-def test_season_create_fail_unauthorized():
-    pass
+def test_season_create_fail_unauthorized(create_season_fix):
+    oauth_header = {"Authorization": "Bearer Kasztan"}
+    response = create_season(oauth_header=oauth_header)
+    assert response.status_code == 401
 
 
 def test_seasons_get_all(create_season_fix):
@@ -129,9 +146,10 @@ def test_seasons_get_by_year(create_season_fix):
     assert response.json()['year'] == season['year']
 
 
-# TODO
-def test_season_get_fail_doesnt_exist():
-    pass
+def test_season_get_fail_doesnt_exist(create_user_and_get_token):
+    oauth_header = create_user_and_get_token
+    response = client.get(headers=oauth_header, url="/seasons/7777")
+    assert response.status_code == 404
 
 
 def test_seasons_create_harvest_no_employees(create_season_fix):
@@ -140,23 +158,47 @@ def test_seasons_create_harvest_no_employees(create_season_fix):
                               fruit="raspberry", date=datetime.date(2777, 6, 18),
                               harvested=666, price=6)
     assert response.status_code == 201
-    assert response.json() is not None
+    assert response.json()
     assert response.json()['fruit'] == "raspberry"
     assert response.json()['date'] == datetime.date(2777, 6, 18).isoformat()
 
 
-# TODO
-def test_season_create_harvest_fail_forbidden_fruit():
-    pass
+def test_season_create_harvest_fail_forbidden_fruit(create_season_fix):
+    oauth_header, season = create_season_fix
+    response = create_harvest(oauth_header=oauth_header, s_year=season['year'],
+                              fruit="kasztan", date=datetime.date(season['year'], 7, 16),
+                              harvested=123, price=4)
+    assert response.status_code == 422
+
+
+def test_season_create_harvest_fail_date_out_of_bounds(create_season_fix):
+    oauth_header, season = create_season_fix
+    response = create_harvest(oauth_header, season['year'],
+                              date=datetime.date(season['year'], 11, 1),
+                              price=12, harvested=123, fruit="raspberry")
+    assert response.status_code == 422
+
+
+def test_season_create_harvest_fail_incomplete_data(create_season_fix):
+    oauth_header, season = create_season_fix
+    response = create_harvest(oauth_header, season['year'],
+                              date=datetime.date(season['year'], 8, 12),
+                              harvested=12, price=1, fruit=None)
+    assert response.status_code == 422
+
+
+def test_season_get_harvests_all(create_harvest_fix):
+    oauth_header, season, harvest = create_harvest_fix
+    response = client.get(url=f"seasons/{season['year']}/harvests", headers=oauth_header)
+    assert response.status_code == 200
+    assert response.json()
+    assert type(response.json()) is list
+    assert type(response.json()[0]) is dict
+    assert response.json()[0]['date'] == harvest['date']
 
 
 # TODO
-def test_season_create_harvest_fail_date_out_of_bounds():
-    pass
-
-
-# TODO
-def test_season_create_harvest_fail_incomplete_data():
+def test_season_get_harvests_all_fail_unauthorized(create_season_fix):
     pass
 
 
@@ -171,7 +213,7 @@ def test_seasons_create_employee_end_date(create_season_fix):
                                name="Stefan", start_date=datetime.date(2777, 6, 16),
                                end_date=datetime.date(2777, 8, 17))
     assert response.status_code == 201
-    assert response.json() is not None
+    assert response.json()
     assert response.json()['name'] == "Stefan"
     assert response.json()['start_date'] == datetime.date(2777, 6, 16).isoformat()
     assert response.json()['end_date'] == datetime.date(2777, 8, 17).isoformat()
