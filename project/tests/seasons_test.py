@@ -51,33 +51,24 @@ def create_season(oauth_header: dict, start_date: Optional[datetime.date] = None
     return response
 
 
+def create_expense(oauth_header: dict, s_year: int, e_type: str,
+                   e_date: datetime.date, amount: float):
+    body = {
+        'type': e_type,
+        'date': e_date.isoformat(),
+        'amount': amount
+    }
+    response = client.post(headers=oauth_header, url=f"/seasons/{s_year}/expenses",
+                           allow_redirects=True, json=body)
+    return response
+
+
 @fixture
 def create_season_fix(create_user_and_get_token) -> Tuple[dict, dict]:
     oauth_header = create_user_and_get_token
     season = create_season(oauth_header=oauth_header, start_date=datetime.date(2777, 5, 22),
                            end_date=datetime.date(2777, 9, 22))
     yield oauth_header, season.json()
-
-
-@fixture
-def create_harvest_fix(create_season_fix):
-    oauth_header, season = create_season_fix
-    response = create_harvest(oauth_header=oauth_header,
-                              s_year=season['year'],
-                              fruit="raspberry",
-                              harvested=666,
-                              price=6, date=datetime.date(2777, 6, 11))
-    yield oauth_header, season, response.json()
-
-
-@fixture
-def create_employee_fix(create_season_fix):
-    oauth_header, season = create_season_fix
-    response = create_employee(oauth_header, s_year=season['year'],
-                               name="Kasztan",
-                               start_date=datetime.date(2777, 5, 28),
-                               end_date=datetime.date(2777, 9, 14))
-    yield oauth_header, season, response.json()
 
 
 def test_season_create_no_end_date(create_user_and_get_token):
@@ -185,8 +176,11 @@ def test_season_create_harvest_fail_incomplete_data(create_season_fix):
     assert response.status_code == 422
 
 
-def test_season_get_harvests_all(create_harvest_fix):
-    oauth_header, season, harvest = create_harvest_fix
+def test_season_get_harvests_all(create_season_fix):
+    oauth_header, season = create_season_fix
+    harvest = create_harvest(oauth_header=oauth_header, s_year=season['year'],
+                             price=3, harvested=134, date=datetime.date(season['year'], 6, 17),
+                             fruit='raspberry').json()
     response = client.get(url=f"seasons/{season['year']}/harvests", headers=oauth_header)
     assert response.status_code == 200
     assert type(response.json()) is list
@@ -265,56 +259,132 @@ def test_season_create_harvest_with_employees(create_season_fix):
     assert type(response.json()['employees'][0]) is dict
 
 
-# TODO
 def test_season_create_harvest_with_employees_fail_incompatible_dates(create_season_fix):
-    pass
+    oauth_header, season = create_season_fix
+    employee = create_employee(oauth_header=oauth_header, s_year=season['year'],
+                               name="Stefan", start_date=datetime.date(2777, 5, 27),
+                               end_date=datetime.date(2777, 7, 17))
+    response = create_harvest(oauth_header, season['year'],
+                              date=datetime.date(2777, 8, 12),
+                              harvested=12, price=1, fruit="raspberry",
+                              employee_ids=[employee.json()['id']])
+    assert response.status_code == 422
+    assert "Incompatible" in response.json()['detail']
 
 
-# TODO
-def test_season_create_harvest_with_employees_fail_different_seasons():
-    pass
+def test_season_create_harvest_with_employees_fail_different_seasons(create_user_and_get_token):
+    oauth_header = create_user_and_get_token
+    season_a = create_season(oauth_header=oauth_header, start_date=datetime.date(2000, 5, 17)).json()
+    season_b = create_season(oauth_header=oauth_header, start_date=datetime.date(2222, 5, 17)).json()
+    employee = create_employee(oauth_header=oauth_header, s_year=season_a['year'],
+                               name="Stefan", start_date=datetime.date(2000, 6, 27),
+                               end_date=datetime.date(2000, 7, 17))
+    response = create_harvest(oauth_header, season_b['year'],
+                              date=datetime.date(2222, 8, 12),
+                              harvested=12, price=1, fruit="raspberry",
+                              employee_ids=[employee.json()['id']])
+    assert response.status_code == 422
+    assert "Incompatible" in response.json()['detail']
 
 
-# TODO
-def test_season_create_employee_with_harvests():
-    pass
+def test_season_create_employee_with_harvests(create_season_fix):
+    oauth_header, season = create_season_fix
+    harvest = create_harvest(oauth_header, season['year'],
+                             date=datetime.date(season['year'], 7, 17),
+                             fruit="raspberry", harvested=500, price=5).json()
+    response = create_employee(oauth_header, season['year'],
+                               name="Press X to Json",
+                               start_date=datetime.date(season['year'], 6, 11),
+                               end_date=datetime.date(season['year'], 8, 12),
+                               harvest_ids=[harvest['id']])
+
+    assert response.status_code == 201
+    assert type(response.json()) == dict
+    assert type(response.json()['harvests']) == list
+    assert type(response.json()['harvests'][0]) == dict
 
 
-# TODO
-def test_season_create_employee_with_harvests_fail_incompatible_dates():
-    pass
+def test_season_create_employee_with_harvests_fail_incompatible_dates(create_season_fix):
+    oauth_header, season = create_season_fix
+    harvest = create_harvest(oauth_header, season['year'],
+                             date=datetime.date(season['year'], 9, 17),
+                             fruit="raspberry", harvested=500, price=5).json()
+    response = create_employee(oauth_header, season['year'],
+                               name="Press X to Json",
+                               start_date=datetime.date(season['year'], 6, 11),
+                               end_date=datetime.date(season['year'], 8, 12),
+                               harvest_ids=[harvest['id']])
+    assert response.status_code == 422
 
 
-# TODO
-def test_season_create_employee_with_harvests_fail_different_seasons():
-    pass
+def test_season_create_employee_with_harvests_fail_different_seasons(create_user_and_get_token):
+    oauth_header = create_user_and_get_token
+    season_a = create_season(oauth_header=oauth_header, start_date=datetime.date(2000, 5, 17)).json()
+    season_b = create_season(oauth_header=oauth_header, start_date=datetime.date(2222, 5, 17)).json()
+    harvest = create_harvest(oauth_header, season_b['year'],
+                             date=datetime.date(season_b['year'], 9, 17),
+                             fruit="raspberry", harvested=500, price=5).json()
+    response = create_employee(oauth_header, season_a['year'],
+                               name="Press X to Json",
+                               start_date=datetime.date(season_a['year'], 6, 11),
+                               end_date=datetime.date(season_a['year'], 8, 12),
+                               harvest_ids=[harvest['id']])
+    assert response.status_code == 422
 
 
-# TODO
-def test_season_create_expense():
-    pass
+def test_season_create_expense(create_season_fix):
+    oauth_header, season = create_season_fix
+    body = {"type": "generic",
+            "date": datetime.date(season['year'], 7, 11).isoformat(),
+            "amount": 115.5}
+    response = client.post(headers=oauth_header, url=f"/seasons/{season['year']}/expenses",
+                           allow_redirects=True, json=body)
+    print(response.json())
+    assert response.status_code == 201
+    assert type(response.json()) == dict
+    assert response.json()['type'] == 'generic'
 
 
-# TODO
-def test_season_create_expense_fail_unauthorized():
-    pass
+def test_season_create_expense_fail_unauthorized(create_season_fix):
+    _, season = create_season_fix
+    response = create_expense(oauth_header={}, s_year=season['year'], e_type='kasztan',
+                              e_date=datetime.date(season['year'], 7, 15), amount=123.4)
+    assert response.status_code == 401
 
 
-# TODO
-def test_season_create_expense_fail_incomplete_data():
-    pass
+def test_season_create_expense_fail_incomplete_data(create_season_fix):
+    oauth_header, season = create_season_fix
+    response_a = create_expense(oauth_header=oauth_header, s_year=season['year'], e_type='generic',
+                                e_date=datetime.date(season['year'], 11, 15), amount=123.4)
+    response_b = create_expense(oauth_header=oauth_header, s_year=season['year'], e_type=None,
+                                e_date=datetime.date(season['year'], 7, 15), amount=123.4)
+    response_c = create_expense(oauth_header=oauth_header, s_year=season['year'], e_type='generic',
+                                e_date=datetime.date(season['year'], 7, 15), amount=12312356245637.43)
+    assert response_a.status_code == 422
+    assert response_b.status_code == 422
+    assert response_c.status_code == 422
 
 
-# TODO
-def test_season_create_expense_nonexistent_season():
-    pass
+def test_season_create_expense_nonexistent_season(create_user_and_get_token):
+    oauth_header = create_user_and_get_token
+    response = create_expense(oauth_header=oauth_header, s_year=9999,
+                              e_type='generic', amount=111.1,
+                              e_date=datetime.date(9999, 7, 15))
+    return response.status_code == 422
 
 
-# TODO
-def test_season_get_expense():
-    pass
+def test_season_get_expense(create_season_fix):
+    oauth_header, season = create_season_fix
+    create_expense(oauth_header, season['year'],
+                   e_type='generic', e_date=datetime.date(season['year'], 7, 11),
+                   amount=111)
+    response = client.get(headers=oauth_header, url=f"/seasons/{season['year']}/expenses")
+    assert response.status_code == 200
+    assert type(response.json()) == list
+    assert 'generic' in response.json()[0].values()
 
 
-# TODO
-def test_season_get_expense_fail_unauthorized():
-    pass
+def test_season_get_expense_fail_unauthorized(create_season_fix):
+    _, season = create_season_fix
+    response = client.get(headers={}, url=f"/seasons/{season['year']}/expenses")
+    assert response.status_code == 401

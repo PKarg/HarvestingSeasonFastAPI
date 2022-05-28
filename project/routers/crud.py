@@ -116,6 +116,15 @@ def harvest_create(db: Session, user: m.User, year: int,
 
     if data.employee_ids:
         harvest_new.employees = employees_get(db=db, user=user, ids=data.employee_ids)
+        for e in harvest_new.employees:
+            if not validate_date_in_bounds(bounds_start=e.start_date,
+                                           bounds_end=e.end_date,
+                                           start_date=data.date,
+                                           end_date=data.date):
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                    detail=f"Incompatible dates: harvest date {data.date}"
+                                           f" and employee start: {e.start_date} or/and end {e.end_date}")
+
 
     db.add(harvest_new)
     db.commit()
@@ -135,7 +144,7 @@ def harvests_get(db: Session, user: m.User,
                  p_less: Optional[str] = None,
                  h_more: Optional[str] = None,
                  h_less: Optional[str] = None) -> List[m.Harvest]:
-    # TODO add order by options
+
     harvests = db.query(m.Harvest).filter(m.Harvest.owner_id == user.id)
     if id and type(id) == int:
         harvests = harvests.filter(m.Harvest.id == id)
@@ -230,11 +239,15 @@ def employee_create(db: Session, user: m.User, year: int,
         start_date=data.start_date,
         end_date=data.end_date
     )
-    # TODO change for crud method get_harvests
+
     if data.harvest_ids:
-        employee_new.harvests = db.query(m.Harvest)\
-            .filter(m.Harvest.id.in_(data.harvest_ids))\
-            .filter(m.Harvest.season_id == season_m.id).all()
+        employee_new.harvests = harvests_get(db, user, id=data.harvest_ids)
+        for h in employee_new.harvests:
+            if not validate_date_in_bounds(bounds_start=employee_new.start_date,
+                                           bounds_end=employee_new.end_date,
+                                           start_date=h.date):
+                raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                    detail=f"Dates exclude harvest {h.id}")
 
     db.add(employee_new)
     db.commit()
