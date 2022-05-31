@@ -1,15 +1,10 @@
 import datetime
+import json
 from typing import Tuple, Optional, List
 
 from pytest import fixture
-from requests import Session
-from fastapi.testclient import TestClient
 
-from project.main import app
-from .main_test import create_user_and_get_token
-
-
-client: Session = TestClient(app)
+from .main_test import client, create_user_and_get_token
 
 
 def create_harvest(oauth_header: dict, s_year: int, price: int,
@@ -18,6 +13,7 @@ def create_harvest(oauth_header: dict, s_year: int, price: int,
     body = {
         "price": price,
         "harvested": harvested,
+
         "date": date.isoformat(),
         "fruit": fruit,
         "employee_ids": employee_ids if employee_ids else None
@@ -74,6 +70,7 @@ def create_season_fix(create_user_and_get_token) -> Tuple[dict, dict]:
 def test_season_create_no_end_date(create_user_and_get_token):
     oauth_header = create_user_and_get_token
     response = create_season(oauth_header=oauth_header, start_date=datetime.date(2777, 5, 22))
+    print(response.json())
     assert response.status_code == 201
     assert response.json()['start_date'] == "2777-05-22"
     assert response.json()['year'] == 2777
@@ -387,4 +384,5 @@ def test_season_get_expense(create_season_fix):
 def test_season_get_expense_fail_unauthorized(create_season_fix):
     _, season = create_season_fix
     response = client.get(headers={}, url=f"/seasons/{season['year']}/expenses")
+    print(response.json())
     assert response.status_code == 401

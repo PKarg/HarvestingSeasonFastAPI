@@ -41,8 +41,8 @@ def season_get(db: Session, user: m.User,
                year: Optional[int] = None,
                after: Optional[str] = None,
                before: Optional[str] = None,
-               limit: Optional[str] = None,
-               offset: Optional[str] = None) -> List[m.Season]:
+               limit: Optional[int] = None,
+               offset: Optional[int] = None) -> List[m.Season]:
     seasons: db.query = db.query(m.Season)\
         .options(
         joinedload(m.Season.employees),
@@ -58,10 +58,8 @@ def season_get(db: Session, user: m.User,
         before = validate_date_qp(before)
         seasons = seasons.filter(m.Season.start_date > before)
     if offset:
-        offset = int(offset)
         seasons = seasons.offset(offset)
     if limit:
-        limit = int(limit)
         seasons = seasons.limit(limit)
 
     seasons = seasons.all()
@@ -124,8 +122,6 @@ def harvest_create(db: Session, user: m.User, year: int,
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                     detail=f"Incompatible dates: harvest date {data.date}"
                                            f" and employee start: {e.start_date} or/and end {e.end_date}")
-
-
     db.add(harvest_new)
     db.commit()
     db.refresh(harvest_new)
@@ -140,10 +136,12 @@ def harvests_get(db: Session, user: m.User,
                  after: Optional[str] = None,
                  before: Optional[str] = None,
                  fruit: Optional[str] = None,
-                 p_more: Optional[str] = None,
-                 p_less: Optional[str] = None,
-                 h_more: Optional[str] = None,
-                 h_less: Optional[str] = None) -> List[m.Harvest]:
+                 limit: Optional[int] = None,
+                 offset: Optional[int] = None,
+                 p_more: Optional[decimal.Decimal] = None,
+                 p_less: Optional[decimal.Decimal] = None,
+                 h_more: Optional[decimal.Decimal] = None,
+                 h_less: Optional[decimal.Decimal] = None) -> List[m.Harvest]:
 
     harvests = db.query(m.Harvest).filter(m.Harvest.owner_id == user.id)
     if id and type(id) == int:
@@ -179,6 +177,10 @@ def harvests_get(db: Session, user: m.User,
         employee_m: m.Employee = employees_get(db=db, user=user, id=employee_id)[0]
         harvest_ids = [h.id for h in employee_m.harvests]
         harvests = harvests.filter(m.Harvest.id.in_(harvest_ids))
+    if offset:
+        harvests = harvests.offset(offset)
+    if limit:
+        harvests = harvests.limit(limit)
     harvests = harvests.all()
     if not harvests:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -264,7 +266,10 @@ def employees_get(db: Session, user: m.User,
                   season_id: Optional[str] = None,
                   name: Optional[str] = None,
                   after: Optional[str] = None,
-                  before: Optional[str] = None) -> List[m.Employee]:
+                  before: Optional[str] = None,
+                  limit: Optional[int] = None,
+                  offset: Optional[int] = None
+                  ) -> List[m.Employee]:
     employees = db.query(m.Employee).filter(m.Employee.employer_id == user.id)
     if id and not ids:
         employees = employees.filter(m.Employee.id == id)
@@ -290,6 +295,10 @@ def employees_get(db: Session, user: m.User,
     if before:
         before = validate_date_qp(before)
         employees = employees.filter(m.Employee.start_date < before)
+    if offset:
+        employees = employees.offset(offset)
+    if limit:
+        employees = employees.limit(limit)
     employees = employees.all()
     if not employees:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -358,8 +367,11 @@ def expenses_get(db: Session, user: m.User,
                  type: Optional[str] = None,
                  after: Optional[str] = None,
                  before: Optional[str] = None,
-                 more: Optional[str] = None,
-                 less: Optional[str] = None) -> List[m.Expense]:
+                 more: Optional[decimal.Decimal] = None,
+                 less: Optional[decimal.Decimal] = None,
+                 limit: Optional[int] = None,
+                 offset: Optional[int] = None
+                 ) -> List[m.Expense]:
     expenses = db.query(m.Expense).filter(m.Expense.owner_id == user.id)
     if id:
         expenses = expenses.filter(m.Expense.id == id)
@@ -385,6 +397,10 @@ def expenses_get(db: Session, user: m.User,
     if less:
         less = decimal.Decimal(less)
         expenses = expenses.filter(m.Expense.amount < less)
+    if offset:
+        expenses = expenses.offset(offset)
+    if limit:
+        expenses = expenses.limit(limit)
     expenses = expenses.all()
     if not expenses:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -451,10 +467,13 @@ def workdays_get(db: Session,
                  h_id: Optional[int] = None,
                  e_id: Optional[int] = None,
                  fruit: Optional[str] = None,
-                 h_more: Optional[str] = None,
-                 h_less: Optional[str] = None,
-                 p_more: Optional[str] = None,
-                 p_less: Optional[str] = None) -> List[m.Workday]:
+                 h_more: Optional[decimal.Decimal] = None,
+                 h_less: Optional[decimal.Decimal] = None,
+                 p_more: Optional[decimal.Decimal] = None,
+                 p_less: Optional[decimal.Decimal] = None,
+                 limit: Optional[int] = None,
+                 offset: Optional[int] = None
+                 ) -> List[m.Workday]:
     workdays = db.query(m.Workday).filter(m.Workday.employer_id == user.id)
     if h_id:
         workdays = db.query(m.Workday).filter(m.Workday.harvest_id == h_id)
@@ -475,7 +494,11 @@ def workdays_get(db: Session,
     if fruit:
         workdays = workdays.filter(m.Workday.fruit == fruit)
     if id:
-        workdays = workdays.filter(m.Workday.id == id)
+        workdays = workdays.filter(m.Workday.id == id),
+    if offset:
+        workdays = workdays.offset(offset)
+    if limit:
+        workdays = workdays.limit(limit)
 
     workdays = workdays.all()
     if not workdays:
@@ -521,9 +544,6 @@ def workday_update(db: Session,
         if not validate_date_in_bounds(start_date=harvest_m.date,
                                        bounds_start=employee_m.start_date,
                                        bounds_end=employee_m.end_date):
-            print(harvest_m.date)
-            print(employee_m.start_date)
-            print(employee_m.end_date)
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                                 detail="Harvest and Employee dates not compatible")
         workday.harvest_id = data.harvest_id

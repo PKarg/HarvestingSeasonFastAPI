@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from project.auth import get_current_user
 from project.data import models as m, schemas as sc
-from project.dependencies import get_db
+from project.dependencies import get_db, after_before, price_harvested_more_less, limit_offset
 from . import crud
 
 router = APIRouter(
@@ -20,15 +20,12 @@ def harvests_get_all(user: m.User = Depends(get_current_user),
                      db: Session = Depends(get_db),
                      year: Optional[str] = Query(None, min_length=4, max_length=4, regex=r"^ *\d[\d ]*$"),
                      season_id: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                     after: Optional[str] = Query(None),
-                     before: Optional[str] = Query(None),
                      fruit: Optional[str] = Query(None, min_length=5, max_length=20),
-                     p_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                     p_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                     h_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                     h_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$")
-                     ):
-    return crud.harvests_get(db, user, after=after, before=before, fruit=fruit, year=year, season_id=season_id, p_more=p_more, p_less=p_less, h_more=h_more, h_less=h_less)
+                     after_before_qp=Depends(after_before),
+                     price_harvested_qp=Depends(price_harvested_more_less),
+                     limit_offset_qp=Depends(limit_offset)):
+    return crud.harvests_get(db, user, fruit=fruit, year=year, season_id=season_id,
+                             **after_before_qp, **price_harvested_qp, **limit_offset_qp)
 
 
 @router.get("/{h_id}", status_code=status.HTTP_200_OK,
@@ -67,10 +64,10 @@ def harvests_update(h_id: int,
 def harvests_get_employees(h_id: int,
                            user: m.User = Depends(get_current_user),
                            db: Session = Depends(get_db),
-                           after: Optional[str] = Query(None, min_length=10, max_length=10,regex=r"^[0-9]+(-[0-9]+)+$"),
-                           before: Optional[str] = Query(None, min_length=10, max_length=10,regex=r"^[0-9]+(-[0-9]+)+$"),
+                           after_before_qp=Depends(after_before),
+                           limit_offset_qp=Depends(limit_offset),
                            name: Optional[str] = Query(None, min_length=2, max_length=10, regex=r"[a-zA-Z]+")):
-    return crud.employees_get(db=db, user=user, harvest_id=h_id, after=after, before=before, name=name)
+    return crud.employees_get(db=db, user=user, harvest_id=h_id, name=name, **after_before_qp, **limit_offset_qp)
 
 
 @router.get("/{id}/workdays", status_code=status.HTTP_200_OK,
@@ -78,14 +75,11 @@ def harvests_get_employees(h_id: int,
 def harvests_get_workdays(h_id: int,
                           user: m.User = Depends(get_current_user),
                           db: Session = Depends(get_db),
-                          p_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                          p_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                          h_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                          h_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                          fruit: Optional[str] = Query(None, min_length=5, max_length=20)):
-    return crud.workdays_get(db=db, user=user, h_id=h_id, p_more=p_more,
-                             p_less=p_less, h_more=h_more, h_less=h_less,
-                             fruit=fruit)
+                          fruit: Optional[str] = Query(None, min_length=5, max_length=20),
+                          price_harvested_qp=Depends(price_harvested_more_less),
+                          limit_offset_qp=Depends(limit_offset)):
+    return crud.workdays_get(db=db, user=user, h_id=h_id,
+                             fruit=fruit, **price_harvested_qp, **limit_offset_qp)
 
 
 @router.post("/{id}/workdays", status_code=status.HTTP_201_CREATED,

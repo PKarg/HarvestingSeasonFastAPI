@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from project.auth import get_current_user
 from project.data import models as m, schemas as sc
-from project.dependencies import get_db
+from project.dependencies import get_db, price_harvested_more_less, limit_offset
 from . import crud
 
 router = APIRouter(
@@ -18,14 +18,10 @@ router = APIRouter(
             response_model=List[sc.WorkdayResponse])
 def workdays_get_all(user: m.User = Depends(get_current_user),
                      db: Session = Depends(get_db),
-                     p_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                     p_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                     h_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                     h_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                     fruit: Optional[str] = Query(None, min_length=5, max_length=20)
-                     ):
-    return crud.workdays_get(db=db, user=user, p_more=p_more, p_less=p_less,
-                             h_more=h_more, h_less=h_less, fruit=fruit)
+                     price_harvested_qp=Depends(price_harvested_more_less),
+                     fruit: Optional[str] = Query(None, min_length=5, max_length=20),
+                     limit_offset_qp=Depends(limit_offset)):
+    return crud.workdays_get(db=db, user=user, **price_harvested_qp, **limit_offset_qp, fruit=fruit)
 
 
 @router.get("/{w_id}", status_code=status.HTTP_200_OK,

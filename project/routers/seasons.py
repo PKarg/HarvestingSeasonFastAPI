@@ -1,3 +1,4 @@
+import decimal
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, status, Query
@@ -5,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from project.auth import get_current_user
 from project.data import models as m, schemas as sc
-from project.dependencies import get_db
+from project.dependencies import get_db, limit_offset, after_before, price_harvested_more_less
 from . import crud
 
 router = APIRouter(
@@ -25,12 +26,10 @@ def seasons_post(season_data: sc.SeasonBase,
             response_model=List[sc.SeasonResponse])
 def seasons_get_all(user: m.User = Depends(get_current_user),
                     db: Session = Depends(get_db),
-                    after: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
-                    before: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
-                    limit: Optional[str] = None,
-                    offset: Optional[str] = None):
-    return crud.season_get(db=db, user=user, after=after, before=before,
-                           limit=limit, offset=offset)
+                    limit_offset_qp=Depends(limit_offset),
+                    after_before_qp=Depends(after_before)):
+    return crud.season_get(db=db, user=user, **after_before_qp,
+                           **limit_offset_qp)
 
 
 @router.get("/{year}", status_code=status.HTTP_200_OK,
@@ -72,15 +71,12 @@ def harvests_post(year: int,
 def harvests_get(year: int,
                  user: m.User = Depends(get_current_user),
                  db: Session = Depends(get_db),
-                 after: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
-                 before: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
+                 after_before_qp=Depends(after_before),
                  fruit: Optional[str] = Query(None, min_length=3, max_length=30),
-                 p_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                 p_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                 h_more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                 h_less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$")):
-    return crud.harvests_get(db, user, year=year, after=after, before=before,
-                             fruit=fruit, p_more=p_more, p_less=p_less, h_more=h_more, h_less=h_less)
+                 price_harvested_qp=Depends(price_harvested_more_less),
+                 limit_offset_qp=Depends(limit_offset)):
+    return crud.harvests_get(db, user, year=year,
+                             fruit=fruit, **price_harvested_qp, **after_before_qp, **limit_offset_qp)
 
 
 @router.post("/{year}/employees", status_code=status.HTTP_201_CREATED,
@@ -97,10 +93,10 @@ def employees_post(year: int,
 def employees_get(year: int,
                   user: m.User = Depends(get_current_user),
                   db: Session = Depends(get_db),
-                  after: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
-                  before: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
+                  after_before_qp=Depends(after_before),
+                  limit_offset_qp=Depends(limit_offset),
                   name: Optional[str] = Query(None, min_length=2, max_length=10, regex=r"[a-zA-Z]+")):
-    return crud.employees_get(db=db, user=user, year=year, after=after, before=before, name=name)
+    return crud.employees_get(db=db, user=user, year=year, name=name, **after_before_qp, **limit_offset_qp)
 
 
 @router.post("/{year}/expenses", status_code=status.HTTP_201_CREATED,
@@ -118,8 +114,9 @@ def expenses_get(year: int,
                  user: m.User = Depends(get_current_user),
                  db: Session = Depends(get_db),
                  type: Optional[str] = Query(None, min_length=2, max_length=30, regex=r"[a-zA-Z]+"),
-                 after: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
-                 before: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
-                 more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
-                 less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$")):
-    return crud.expenses_get(db=db, user=user, year=year, type=type, after=after, before=before, more=more, less=less)
+                 more: Optional[decimal.Decimal] = Query(None, gt=0),
+                 less: Optional[decimal.Decimal] = Query(None, gt=0),
+                 after_before_qp=Depends(after_before),
+                 limit_offset_qp=Depends(limit_offset)):
+    return crud.expenses_get(db=db, user=user, year=year, type=type, more=more, less=less,
+                             **after_before_qp, **limit_offset_qp)
