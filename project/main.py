@@ -14,7 +14,7 @@ from .data import schemas as sc
 from .data.models import Base, User
 from .auth import authenticate_user, token_exception, create_access_token, get_password_hash
 from .data.database import engine
-from .routers import seasons, harvests, employees, expenses, workdays
+from .routers import seasons, harvests, employees, expenses, workdays, admin
 
 
 # TODO add tests for existing endpoints
@@ -28,13 +28,14 @@ app.include_router(harvests.router)
 app.include_router(employees.router)
 app.include_router(expenses.router)
 app.include_router(workdays.router)
+app.include_router(admin.router)
 
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
 security = HTTPBasic()
 
 
-def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
+def get_current_active_username(credentials: HTTPBasicCredentials = Depends(security)):
     correct_username = secrets.compare_digest(credentials.username, os.environ.get("API_DOCS_USERNAME"))
     correct_password = secrets.compare_digest(credentials.password, os.environ.get("API_DOCS_PASSWORD"))
     if not (correct_username and correct_password):
@@ -47,18 +48,18 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
 
 
 @app.get("/docs", include_in_schema=False)
-async def get_documentation(username: str = Depends(get_current_username)):
+async def get_documentation(username: str = Depends(get_current_active_username)):
     return get_swagger_ui_html(openapi_url="/openapi.json", title="Swagger")
 
 
 @app.get("/openapi.json", include_in_schema=False)
-async def openapi(username: str = Depends(get_current_username)):
+async def openapi(username: str = Depends(get_current_active_username)):
     return get_openapi(title=app.title, version=app.version, routes=app.routes)
 
 
 @app.post("/user", status_code=status.HTTP_201_CREATED)
 async def create_new_user(user: sc.UserCreate, db: Session = Depends(get_db),
-                          username: str = Depends(get_current_username)):
+                          username: str = Depends(get_current_active_username)):
     user_m = db.query(User).filter(User.username == user.username).first()
     if user_m:
         raise HTTPException(status_code=400, detail="User already exists")

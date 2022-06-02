@@ -49,8 +49,8 @@ def create_access_token(username: str, user_id: int,
     return jwt.encode(encode_data, SECRET_KEY, algorithm=ALGORITHM)
 
 
-async def get_current_user(db: Session = Depends(get_db),
-                           token: str = Depends(oauth2_scheme)):
+async def get_current_active_user(db: Session = Depends(get_db),
+                                  token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, ALGORITHM)
         username: str = payload.get("sub")
@@ -58,9 +58,20 @@ async def get_current_user(db: Session = Depends(get_db),
         if username is None or user_id is None:
             raise get_user_exception()
         else:
-            return db.query(User).filter(User.username == username).first()
+            return db.query(User)\
+                .filter(User.username == username)\
+                .filter(User.is_active == True)\
+                .first()
     except JWTError:
         raise get_user_exception()
+
+
+def check_if_user_admin(current_active_user: User = Depends(get_current_active_user)):
+    if not current_active_user.auth_level > 1:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Only admin users can access this endpoint")
+    else:
+        return current_active_user
 
 
 # Exceptions

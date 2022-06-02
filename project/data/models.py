@@ -33,6 +33,7 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
+    auth_level = Column(Integer, default=1)
 
     seasons = relationship("Season", back_populates="owner", cascade="all, delete")
 

@@ -9,7 +9,6 @@ from pytest import fixture
 
 from project.main import app
 from project.dependencies import get_db
-from project.data.database import Base
 import project.data.models as m
 
 # TESTING DB
@@ -17,7 +16,7 @@ SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///./test.db"
 engine_test = create_engine(SQLALCHEMY_TEST_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine_test)
 
-Base.metadata.create_all(bind=engine_test)
+m.Base.metadata.create_all(bind=engine_test)
 
 
 def override_get_db():
@@ -41,7 +40,9 @@ def test_hello():
 def test_create_user_and_get_token():
     user_data = {
         "username": "kasztan_test_login",
-        "password": "kasztan_test_pass"
+        "password": "kasztan_test_pass",
+        "active": True,
+        "auth_level": 1
     }
     try:
         response = client.post(url="/user", json=user_data, auth=('admin', 'admin'))
@@ -62,7 +63,9 @@ def test_create_user_and_get_token():
 def create_user_and_get_token():
     user_data = {
         "username": "kasztan_test_login",
-        "password": "kasztan_test_pass"
+        "password": "kasztan_test_pass",
+        "active": True,
+        "auth_level": 1
     }
     # Create test user
     response = client.post(url="/user", json=user_data,

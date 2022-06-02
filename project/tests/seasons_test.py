@@ -70,7 +70,6 @@ def create_season_fix(create_user_and_get_token) -> Tuple[dict, dict]:
 def test_season_create_no_end_date(create_user_and_get_token):
     oauth_header = create_user_and_get_token
     response = create_season(oauth_header=oauth_header, start_date=datetime.date(2777, 5, 22))
-    print(response.json())
     assert response.status_code == 201
     assert response.json()['start_date'] == "2777-05-22"
     assert response.json()['year'] == 2777

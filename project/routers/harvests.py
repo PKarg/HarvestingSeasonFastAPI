@@ -3,7 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
-from project.auth import get_current_user
+from project.auth import get_current_active_user
 from project.data import models as m, schemas as sc
 from project.dependencies import get_db, after_before, price_harvested_more_less, limit_offset
 from . import crud
@@ -16,7 +16,7 @@ router = APIRouter(
 
 @router.get("/", status_code=status.HTTP_200_OK,
             response_model=List[sc.HarvestResponseALL])
-def harvests_get_all(user: m.User = Depends(get_current_user),
+def harvests_get_all(user: m.User = Depends(get_current_active_user),
                      db: Session = Depends(get_db),
                      year: Optional[str] = Query(None, min_length=4, max_length=4, regex=r"^ *\d[\d ]*$"),
                      season_id: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
@@ -31,7 +31,7 @@ def harvests_get_all(user: m.User = Depends(get_current_user),
 @router.get("/{h_id}", status_code=status.HTTP_200_OK,
             response_model=sc.HarvestResponseALL)
 def harvests_get_id(h_id: int,
-                    user: m.User = Depends(get_current_user),
+                    user: m.User = Depends(get_current_active_user),
                     db: Session = Depends(get_db)):
     try:
         return crud.harvests_get(db, user, id=h_id)[0]
@@ -42,7 +42,7 @@ def harvests_get_id(h_id: int,
 @router.delete("/{h_id}", status_code=status.HTTP_200_OK,
                response_model=None)
 def harvests_delete(h_id: int,
-                    user: m.User = Depends(get_current_user),
+                    user: m.User = Depends(get_current_active_user),
                     db: Session = Depends(get_db)):
     harvest_m = crud.harvests_get(db, user, id=h_id)[0]
     db.delete(harvest_m)
@@ -53,7 +53,7 @@ def harvests_delete(h_id: int,
               response_model=sc.HarvestResponse)
 def harvests_update(h_id: int,
                     harvest_data: sc.HarvestUpdate,
-                    user: m.User = Depends(get_current_user),
+                    user: m.User = Depends(get_current_active_user),
                     db: Session = Depends(get_db)):
     harvest_m_updated = crud.harvest_update(db=db, user=user, id=h_id, data=harvest_data)
     return harvest_m_updated
@@ -62,7 +62,7 @@ def harvests_update(h_id: int,
 @router.get("/{h_id}/employees", status_code=status.HTTP_200_OK,
             response_model=List[sc.EmployeeResponse])
 def harvests_get_employees(h_id: int,
-                           user: m.User = Depends(get_current_user),
+                           user: m.User = Depends(get_current_active_user),
                            db: Session = Depends(get_db),
                            after_before_qp=Depends(after_before),
                            limit_offset_qp=Depends(limit_offset),
@@ -73,7 +73,7 @@ def harvests_get_employees(h_id: int,
 @router.get("/{id}/workdays", status_code=status.HTTP_200_OK,
             response_model=List[sc.WorkdayResponse])
 def harvests_get_workdays(h_id: int,
-                          user: m.User = Depends(get_current_user),
+                          user: m.User = Depends(get_current_active_user),
                           db: Session = Depends(get_db),
                           fruit: Optional[str] = Query(None, min_length=5, max_length=20),
                           price_harvested_qp=Depends(price_harvested_more_less),
@@ -86,6 +86,6 @@ def harvests_get_workdays(h_id: int,
              response_model=sc.WorkdayResponse)
 def harvests_post_workday(h_id: int,
                           workday_data: sc.WorkdayCreate,
-                          user: m.User = Depends(get_current_user),
+                          user: m.User = Depends(get_current_active_user),
                           db: Session = Depends(get_db)):
     return crud.workday_create(db=db, user=user, data=workday_data, h_id=h_id)
