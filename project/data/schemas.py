@@ -3,7 +3,6 @@ import decimal
 import decimal as dec
 from typing import Optional, List
 
-from fastapi import HTTPException, status
 from pydantic import BaseModel, Field, validator
 
 from . import models
@@ -18,6 +17,14 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "username": "user123",
+                "password": "pass123"
+            }
+        }
 
 
 class User(UserBase):
@@ -56,6 +63,18 @@ class HarvestBase(BaseModel):
 class HarvestCreate(HarvestBase):
     employee_ids: Optional[List[int]] = None
 
+    class Config:
+        orm_mode = True
+        schema_extra = {
+            "example": {
+                "fruit": "raspberry",
+                "harvested": decimal.Decimal(1111.5),
+                "date": datetime.date(9999, 11, 7),
+                "price": decimal.Decimal(11.1),
+                "harvests_ids": [1, 2, 3, 4, 5]
+            }
+        }
+
 
 class HarvestResponseBase(HarvestBase):
     id: int
@@ -83,6 +102,15 @@ class HarvestUpdate(HarvestBase):
 
     class Config:
         orm_mode = True
+        schema_extra = {
+            "example": {
+                "fruit": "raspberry",
+                "harvested": decimal.Decimal(1111.5),
+                "date": datetime.date(9999, 11, 7),
+                "price": decimal.Decimal(11.1),
+                "harvests_ids": [1, 2, 3, 4, 5]
+            }
+        }
 
 
 # EMPLOYEES -----------------------
@@ -95,10 +123,31 @@ class EmployeeCreate(EmployeeBase):
     end_date: Optional[datetime.date]
     harvest_ids: Optional[List[int]] = None
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "name": "Karol Straszburger",
+                "start_date": datetime.date(9999, 11, 12),
+                "end_date": datetime.date(9999, 12, 13),
+                "harvests_ids": [1, 2, 3, 4, 5]
+            }
+        }
+
 
 class EmployeeReplace(EmployeeCreate):
     season_id: int
     harvest_ids: List[int]
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "season_id": 1,
+                "name": "Karol Straszburger",
+                "start_date": datetime.date(9999, 11, 12),
+                "end_date": datetime.date(9999, 12, 13),
+                "harvests_ids": [1, 2, 3, 4, 5]
+            }
+        }
 
 
 class EmployeeUpdate(EmployeeBase):
@@ -106,6 +155,16 @@ class EmployeeUpdate(EmployeeBase):
     start_date: Optional[datetime.date] = None
     end_date: Optional[datetime.date] = None
     harvests_ids: Optional[List[int]] = None
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "name": "Karol Straszburger",
+                "start_date": datetime.date(9999, 11, 12),
+                "end_date": datetime.date(9999, 12, 13),
+                "harvests_ids": [1, 2, 3, 4, 5]
+            }
+        }
 
 
 class EmployeeResponse(EmployeeBase):
@@ -141,6 +200,16 @@ class WorkdayCreate(BaseModel):
             pay_per_kg = dec.Decimal(pay_per_kg).quantize(dec.Decimal("1.0"))
         return pay_per_kg
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "employee_id": 1,
+                "harvest_id": 1,
+                "harvested": decimal.Decimal(55.5),
+                "pay_per_kg": decimal.Decimal(55.5)
+            }
+        }
+
 
 class WorkdayUpdate(WorkdayCreate):
     employee_id: Optional[int] = None
@@ -148,11 +217,22 @@ class WorkdayUpdate(WorkdayCreate):
     harvested: Optional[decimal.Decimal] = Field(default=None, ge=3, le=500)
     pay_per_kg: Optional[decimal.Decimal] = Field(default=None, ge=1.5, le=10)
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "employee_id": 1,
+                "harvest_id": 1,
+                "harvested": decimal.Decimal(55.5),
+                "pay_per_kg": decimal.Decimal(55.5)
+            }
+        }
+
 
 class WorkdayResponse(WorkdayCreate):
     id: int
     employer_id: int
     fruit: str
+    harvested: decimal.Decimal
 
     class Config:
         orm_mode = True
@@ -203,15 +283,43 @@ class ExpenseCreate(BaseModel):
             amount = dec.Decimal(amount).quantize(dec.Decimal("1.0"))
         return amount
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "type": "generic",
+                "date": datetime.date(9999, 2, 12),
+                "amount": decimal.Decimal(5555.55)
+            }
+        }
+
 
 class ExpenseReplace(ExpenseCreate):
     season_id: int
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "season_id": 1,
+                "type": "generic",
+                "date": datetime.date(9999, 2, 12),
+                "amount": decimal.Decimal(5555.55)
+            }
+        }
 
 
 class ExpenseUpdate(ExpenseCreate):
     type: Optional[str]
     date: Optional[datetime.date]
     amount: Optional[decimal.Decimal] = Field(default=None, ge=10, le=100000)
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "type": "generic",
+                "date": datetime.date(9999, 2, 12),
+                "amount": decimal.Decimal(5555.55)
+            }
+        }
 
 
 class ExpenseResponse(ExpenseCreate):
@@ -235,6 +343,14 @@ class SeasonBase(BaseModel):
         else:
             start_date = start_date
         return start_date
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "start_date": datetime.date(9999, 1, 10),
+                "end_date": datetime.date(9999, 12, 10),
+            }
+        }
 
 
 class SeasonUpdate(SeasonBase):

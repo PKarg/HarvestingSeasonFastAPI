@@ -7,6 +7,8 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.security import HTTPBasic, HTTPBasicCredentials, OAuth2PasswordRequestForm
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.exception_handlers import http_exception_handler
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.orm import Session
 
 from .dependencies import get_db
@@ -15,12 +17,12 @@ from .data.models import Base, User
 from .auth import authenticate_user, token_exception, create_access_token, get_password_hash
 from .data.database import engine
 from .routers import seasons, harvests, employees, expenses, workdays, admin
-
+from .additional import ApiLogger
 
 # TODO add tests for existing endpoints
-# TODO add dependency handling some common query parameters
-#   https://fastapi.tiangolo.com/tutorial/dependencies/
+# TODO add middleware to log errors
 
+ApiLogger.create_main_logs_dir()
 Base.metadata.create_all(bind=engine)
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 app.include_router(seasons.router)
@@ -31,6 +33,7 @@ app.include_router(workdays.router)
 app.include_router(admin.router)
 
 app.add_middleware(GZipMiddleware, minimum_size=500)
+
 
 security = HTTPBasic()
 
@@ -45,6 +48,13 @@ def get_current_active_username(credentials: HTTPBasicCredentials = Depends(secu
             headers={"WWW-Authenticate": "Basic"},
         )
     return credentials.username
+
+
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request, exc):
+    # TODO detect module from url
+    ApiLogger.create_module_exception_log(module="module-placeholder", exc=exc)
+    return await http_exception_handler(request, exc)
 
 
 @app.get("/docs", include_in_schema=False)

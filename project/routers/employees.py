@@ -15,7 +15,7 @@ router = APIRouter(
 
 
 @router.get("/", status_code=status.HTTP_200_OK,
-            response_model=List[sc.EmployeeResponse])
+            response_model=List[sc.EmployeeResponseALL])
 def employees_get_all(user: m.User = Depends(get_current_active_user),
                       db: Session = Depends(get_db),
                       season_id: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
@@ -27,7 +27,7 @@ def employees_get_all(user: m.User = Depends(get_current_active_user),
 
 
 @router.get("/{e_id}", status_code=status.HTTP_200_OK,
-            response_model=sc.EmployeeResponse)
+            response_model=sc.EmployeeResponseALL)
 def employees_get_id(e_id: int,
                      user: m.User = Depends(get_current_active_user),
                      db: Session = Depends(get_db)):

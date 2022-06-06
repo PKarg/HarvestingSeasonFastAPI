@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 import project.data.models as m
 from project.dependencies import get_db
@@ -15,6 +15,7 @@ router = APIRouter(
 def delete_all_seasons_admin(db: Session = Depends(get_db),
                              user: m.User = Depends(check_if_user_admin)):
     db.query(m.Season).delete()
+    db.commit()
 
 
 @router.delete("/seasons/{s_id}", status_code=status.HTTP_200_OK)
@@ -29,4 +30,5 @@ def delete_season_admin(s_id: int,
 @router.get("/seasons/", status_code=status.HTTP_200_OK)
 def get_all_seasons_admin(user: m.User = Depends(check_if_user_admin),
                           db: Session = Depends(get_db)):
-    return db.query(m.Season).all()
+    return db.query(m.Season)\
+        .options(joinedload(m.Season.employees), joinedload(m.Season.harvests), joinedload(m.Season.expenses)).all()

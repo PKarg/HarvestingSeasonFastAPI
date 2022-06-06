@@ -88,7 +88,7 @@ def employees_post(year: int,
     return crud.employee_create(db=db, user=user, year=year, data=employee_data)
 
 
-@router.get("{year}/employees", status_code=status.HTTP_200_OK,
+@router.get("/{year}/employees", status_code=status.HTTP_200_OK,
             response_model=List[sc.EmployeeResponse])
 def employees_get(year: int,
                   user: m.User = Depends(get_current_active_user),
