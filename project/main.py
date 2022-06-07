@@ -2,7 +2,7 @@ import os
 import secrets
 from datetime import timedelta
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.security import HTTPBasic, HTTPBasicCredentials, OAuth2PasswordRequestForm
@@ -20,7 +20,6 @@ from .routers import seasons, harvests, employees, expenses, workdays, admin
 from .additional import ApiLogger
 
 # TODO add tests for existing endpoints
-# TODO add middleware to log errors
 
 ApiLogger.create_main_logs_dir()
 Base.metadata.create_all(bind=engine)
@@ -51,9 +50,8 @@ def get_current_active_username(credentials: HTTPBasicCredentials = Depends(secu
 
 
 @app.exception_handler(StarletteHTTPException)
-async def custom_http_exception_handler(request, exc):
-    # TODO detect module from url
-    ApiLogger.create_module_exception_log(module="module-placeholder", exc=exc)
+async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    ApiLogger.create_module_exception_log(request=request, exc=exc.detail)
     return await http_exception_handler(request, exc)
 
 

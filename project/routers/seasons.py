@@ -49,7 +49,7 @@ def seasons_update(year: int, season_data: sc.SeasonUpdate,
 
 
 @router.delete("/{year}", status_code=status.HTTP_200_OK)
-def seasons_update(year: int,
+def seasons_delete(year: int,
                    user: m.User = Depends(get_current_active_user),
                    db: Session = Depends(get_db)):
     season_m = crud.season_get(db, user, year)[0]

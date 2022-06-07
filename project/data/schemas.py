@@ -8,8 +8,6 @@ from pydantic import BaseModel, Field, validator
 from . import models
 
 
-# TODO add docs examples to schemas
-
 # USERS================================================================
 class UserBase(BaseModel):
     username: str
@@ -71,7 +69,7 @@ class HarvestCreate(HarvestBase):
                 "harvested": decimal.Decimal(1111.5),
                 "date": datetime.date(9999, 11, 7),
                 "price": decimal.Decimal(11.1),
-                "harvests_ids": [1, 2, 3, 4, 5]
+                "employee_ids": [1, 2, 3, 4, 5]
             }
         }
 
