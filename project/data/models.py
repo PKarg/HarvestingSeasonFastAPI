@@ -55,6 +55,9 @@ class Season(Base):
     employees = relationship("Employee", back_populates="season", cascade="all, delete")
     expenses = relationship("Expense", back_populates="season", cascade="all, delete")
 
+    def print_employees(self):
+        print(self.employees)
+
 
 class Harvest(Base):
     __tablename__ = "harvests"
@@ -76,6 +79,33 @@ class Harvest(Base):
                              back_populates="harvests")
 
     workdays = relationship("Workday", back_populates="harvest", cascade="all, delete")
+
+    # TODO finish data aggregations
+    def harvested_per_employee(self):
+        return {w.employee.name: (round(float(w.harvested), 2),
+                                  round(float(w.pay_per_kg), 2),
+                                  round(float(w.harvested * w.pay_per_kg), 2)) for w in self.workdays}
+
+    def harvested_max(self):
+        return max([round(float(w.harvested), 2) for w in self.workdays])
+
+    def best_employee(self):
+        return next(({emp: har}
+                     for emp, har
+                     in self.harvested_per_employee().items()
+                     if har[0] == self.harvested_max()), None)
+
+    def total_profits(self):
+        return self.harvested * self.price
+
+    def harvested_by_employees(self):
+        return sum([w.harvested for w in self.workdays])
+
+    def avg_pay_per_kg(self):
+        return sum([w.pay_per_kg for w in self.workdays])/len(self.workdays) if self.workdays else 0
+
+    def net_profit(self):
+        return self.harvested * self.price - self.harvested_by_employees() * self.avg_pay_per_kg()
 
 
 class Expense(Base):

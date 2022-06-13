@@ -51,7 +51,7 @@ def get_current_active_username(credentials: HTTPBasicCredentials = Depends(secu
 
 @app.exception_handler(StarletteHTTPException)
 async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
-    ApiLogger.create_module_exception_log(request=request, exc=exc.detail)
+    ApiLogger.create_module_log(module=request, msg=exc.detail, log_type='exc')
     return await http_exception_handler(request, exc)
 
 

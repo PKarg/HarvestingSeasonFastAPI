@@ -89,3 +89,37 @@ def harvests_post_workday(h_id: int,
                           user: m.User = Depends(get_current_active_user),
                           db: Session = Depends(get_db)):
     return crud.workday_create(db=db, user=user, data=workday_data, h_id=h_id)
+
+
+@ router.get("/{id}/summary", status_code=status.HTTP_200_OK)
+def harvests_get_summary(h_id: int,
+                         user: m.User = Depends(get_current_active_user),
+                         db: Session = Depends(get_db),
+                         sumfor: Optional[str] = Query("json", max_length=4, examples={"format": "json"})):
+    harvest = crud.harvests_get(db, user=user, id=h_id)[0]
+
+    har_per_emp = {w.employee.name: (round(float(w.harvested), 2),
+                                     round(float(w.pay_per_kg), 2),
+                                     round(float(w.harvested * w.pay_per_kg), 2)) for w in harvest.workdays}
+    harvested_max = max([round(float(w.harvested), 2) for w in harvest.workdays])
+    best_emp = next(({emp: har} for emp, har in har_per_emp.items() if har[0] == harvested_max), None)
+    harvested_by_employees = sum([w.harvested for w in harvest.workdays])
+    avg_pay_per_kg = sum([w.pay_per_kg for w in harvest.workdays])/len(harvest.workdays)
+    harvest.print_employees()
+
+    report = {
+        "date": harvest.date,
+        "fruit": harvest.fruit,
+        "harvested_all": harvest.harvested,
+        "harvested_by_employees": harvest.harvested_by_employees(),
+        "price_per_kg": harvest.price,
+        "avg_pay_per_kg": harvest.avg_pay_per_kg(),
+        "total_profits": harvest.total_profits(),
+        "harvested_by_emp_profits": harvested_by_employees * harvest.price,
+        "total_paid": harvested_by_employees * avg_pay_per_kg,
+        "net_profit": harvest.net_profit(),
+        "best_employee": best_emp,
+        "harvested_per_emp": har_per_emp
+    }
+
+    return report

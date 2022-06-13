@@ -120,3 +120,20 @@ def expenses_get(year: int,
                  limit_offset_qp=Depends(limit_offset)):
     return crud.expenses_get(db=db, user=user, year=year, type=type, more=more, less=less,
                              **after_before_qp, **limit_offset_qp)
+
+
+@router.get("/{year}/summary")
+def report_single_season():
+    # TODO data in report:
+    #   - year
+    #   - num of employees
+    #   - num of harvests
+    #   - list of harvested fruits
+    #   - total earnings
+    #   - total expenses
+    #   - total employee payments
+    #   - net revenue
+    #   - summary of each fruit - total harvested, total revenue,
+    #       - number of harvests, best and worst harvest, best employee, worst employee
+    #       - first harvest, last harvest
+    pass

@@ -23,14 +23,18 @@ def generate_workdays(harvests: list[m.Harvest], user_id):
     for harvest in harvests:
         try:
             if len(harvest.employees) == 0:
-                print(f"Skipping harvest {harvest.date}  - no employees found")
+                msg = f"Skipping harvest {harvest.date}  - no employees found"
+                print(msg)
+                ApiLogger.create_module_log("populator", msg, 'work')
                 continue
             print(dates)
             harvested_per_employee = generate_constrained_sum(len(harvest.employees),
                                                               int(harvest.harvested))
 
             for employee, harvested in zip(harvest.employees, harvested_per_employee):
-                print(f"Generating Workday for harvest {harvest.date} - {i} out of {workdays_to_generate}")
+                msg = f"Generating Workday for harvest {harvest.date} - {i} out of {workdays_to_generate}"
+                print(msg)
+                ApiLogger.create_module_log("populator", msg, 'work')
                 print(employee.id, harvested)
                 workday = m.Workday()
                 workday.harvest_id = harvest.id
@@ -45,7 +49,7 @@ def generate_workdays(harvests: list[m.Harvest], user_id):
         except IntegrityError:
             msg = "Integrity error while generating Workdays - ignoring faulty data"
             print(msg)
-            ApiLogger.create_module_exception_log("populator", msg)
+            ApiLogger.create_module_log("populator", msg, log_type='exc')
             db.rollback()
 
 
@@ -59,7 +63,9 @@ def generate_harvests(start_date: datetime.date, end_date: datetime.date,
     print(f"Generating Harvests ============================================================")
     for _ in range(n):
         try:
-            print(f"Generating Harvest for year {start_date.year} - {i} out of {n}")
+            msg = f"Generating Harvest for year {start_date.year} - {i} out of {n}"
+            print(msg)
+            ApiLogger.create_module_log("populator", msg, 'work')
             i += 1
             harvest = m.Harvest()
             harvest.fruit = fruits[random.randrange(0, len(fruits))]
@@ -81,7 +87,7 @@ def generate_harvests(start_date: datetime.date, end_date: datetime.date,
         except IntegrityError:
             msg = "Integrity error while generating Harvests - ignoring faulty data"
             print(msg)
-            ApiLogger.create_module_exception_log("populator", msg)
+            ApiLogger.create_module_log("populator", msg, 'exc')
             db.rollback()
     return harvests
 
@@ -100,7 +106,9 @@ def generate_employees(start_date: datetime.date,
     print(f"Generating Employees ============================================================")
     for _ in range(n):
         try:
-            print(f"Generating Employee for year {start_date.year} - {i} out of {n}")
+            msg = f"Generating Employee for year {start_date.year} - {i} out of {n}"
+            print(msg)
+            ApiLogger.create_module_log("populator", msg, 'work')
             i += 1
             employee = m.Employee()
             random_days = random.randint(0, 15)
@@ -115,7 +123,7 @@ def generate_employees(start_date: datetime.date,
         except IntegrityError:
             msg = "Integrity error while generating Employees - ignoring faulty data"
             print(msg)
-            ApiLogger.create_module_exception_log("populator", msg)
+            ApiLogger.create_module_log("populator", msg, 'exc')
             db.rollback()
 
 
@@ -125,10 +133,14 @@ def generate_expenses(n: int, season_id: int, user_id: int,
     types = ["general", "pesticides", "herbicides", "fungicides", "fuel", "maintenance"]
     days_between = (end_date - start_date).days
     i = 1
-    print(f"Generating Expenses ============================================================")
+    msg = f"Generating Expenses ============================================================"
+    print(msg)
+    ApiLogger.create_module_log("populator", msg, 'work')
     for _ in range(n):
         try:
-            print(f"Generating Expense for year {start_date.year} - {i} out of {n}")
+            msg = f"Generating Expense for year {start_date.year} - {i} out of {n}"
+            print(msg)
+            ApiLogger.create_module_log("populator", msg, 'work')
             i += 1
             expense = m.Expense()
             expense.season_id = season_id
@@ -141,16 +153,20 @@ def generate_expenses(n: int, season_id: int, user_id: int,
         except IntegrityError:
             msg = "Integrity error while generating Expenses - ignoring faulty data"
             print(msg)
-            ApiLogger.create_module_exception_log("populator", msg)
+            ApiLogger.create_module_log("populator", msg, 'exc')
             db.rollback()
 
 
 def generate_seasons(start_year: int, end_year: int, user_id: int, db: Session):
     i = 1
-    print("Starting db population =========================================================")
+    msg = "Starting db population ========================================================="
+    print(msg)
+    ApiLogger.create_module_log("populator", msg, 'work')
     try:
         for year in range(start_year, end_year + 1):
-            print(f"Generating Season for year {year} - {i} out of {end_year + 1 - start_year}")
+            msg = f"Generating Season for year {year} - {i} out of {end_year + 1 - start_year}"
+            print(msg)
+            ApiLogger.create_module_log("populator", msg, 'work')
             i += 1
             season = m.Season()
             season.owner_id = user_id
@@ -178,7 +194,7 @@ def generate_seasons(start_year: int, end_year: int, user_id: int, db: Session):
         print(e)
         print(traceback.format_exc())
         print("Error occured during generation of dummy data - cleaning db")
-        ApiLogger.create_module_exception_log("populator", traceback.format_exc())
+        ApiLogger.create_module_log("populator", traceback.format_exc(), log_type='exc')
         db.rollback()
         db.query(m.Season).filter(m.Season.owner_id == user_id).delete()
         db.commit()
