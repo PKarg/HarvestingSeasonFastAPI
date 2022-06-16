@@ -109,7 +109,7 @@ def get_employee_summary(e_id: int,
     return summary
 
 
-@router.get("/{e_id}/employees-summary", status_code=status.HTTP_200_OK)
+@router.get("/{e_id}/harvests-summary", status_code=status.HTTP_200_OK)
 def harvests_get_harvest_employees_summary(background_tasks: BackgroundTasks,
                                            e_id: int,
                                            user: m.User = Depends(get_current_active_user),
