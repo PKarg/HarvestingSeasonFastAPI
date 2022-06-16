@@ -1,12 +1,15 @@
+import os
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, BackgroundTasks, HTTPException
 from sqlalchemy.orm import Session
+from starlette.responses import FileResponse
 
 from project.auth import get_current_active_user
 from project.data import models as m, schemas as sc
 from project.dependencies import get_db, after_before, price_harvested_more_less, limit_offset
 from . import crud
+from ..additional import create_temp_csv, delete_temp_files
 
 router = APIRouter(
     prefix="/emlpoyees",
@@ -104,3 +107,28 @@ def get_employee_summary(e_id: int,
         "harvest_history": employee.harvests_history
     }
     return summary
+
+
+@router.get("/{e_id}/employees-summary", status_code=status.HTTP_200_OK)
+def harvests_get_harvest_employees_summary(background_tasks: BackgroundTasks,
+                                           e_id: int,
+                                           user: m.User = Depends(get_current_active_user),
+                                           db: Session = Depends(get_db),
+                                           data_format: str = Query('json', min_length=3, max_length=4)):
+    if data_format not in ('json', 'csv'):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Data format must be 'json' or 'csv', not {data_format}")
+    employee = crud.employees_get(db=db, user=user, id=e_id)[0]
+    if not employee.harvests_history:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Employee with id {e_id} has no registered harvests")
+    if data_format == 'csv':
+        filename = f"employee_{employee.name}_{employee.id}_harvests"
+        compressed_file, tmp_dir = create_temp_csv(data=employee.harvests_history,
+                                                   filename=filename,
+                                                   column_names=employee.harvests_history[0].keys())
+        background_tasks.add_task(delete_temp_files, tmp_dir)
+        return FileResponse(path=os.path.join(tmp_dir, compressed_file), filename=compressed_file,
+                            media_type='application/zip')
+    else:
+        return employee.harvests_history

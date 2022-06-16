@@ -52,8 +52,8 @@ class ApiLogger:
                 logfile.write(msg)
 
 
-def create_temp_csv(data: dict, filename: str, column_names: list):
-    if not isinstance(data, dict):
+def create_temp_csv(data: list, filename: str, column_names: list):
+    if not isinstance(data, list):
         raise TypeError(f"Input must be dict, got {type(data)}")
     current_path = os.path.dirname(os.path.realpath(__file__))
     tmp_dir = tempfile.mkdtemp(dir=current_path)
