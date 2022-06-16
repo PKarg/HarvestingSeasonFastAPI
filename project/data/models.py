@@ -81,20 +81,24 @@ class Harvest(Base):
 
     workdays = relationship("Workday", back_populates="harvest", cascade="all, delete")
 
+    @property
     def harvested_per_employee(self):
-        return [{"name": w.employee.name,
+        return [{"id": w.employee.id,
+                 "name": w.employee.name,
                  "harvested": round(float(w.harvested), 2),
                  "pay_per_kg": round(float(w.pay_per_kg), 2),
                  "earned": round(float(w.harvested * w.pay_per_kg), 2)} for w in self.workdays]
 
+    @property
     def harvested_max(self):
         return max([w.harvested for w in self.workdays])
 
+    @property
     def best_employee(self):
         return next((emp
                      for emp
-                     in self.harvested_per_employee()
-                     if emp['harvested'] == self.harvested_max()), None)
+                     in self.harvested_per_employee
+                     if emp['harvested'] == self.harvested_max), None)
 
     @property
     def total_profits(self):
@@ -172,7 +176,8 @@ class Employee(Base):
 
     @property
     def harvests_history(self):
-        h_history = [{"date": w.harvest.date,
+        h_history = [{"id": w.harvest.id,
+                      "date": w.harvest.date,
                       "fruit": w.fruit,
                       "harvested": w.harvested,
                       "pay_per_kg": w.pay_per_kg,
