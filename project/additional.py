@@ -1,6 +1,9 @@
+import csv
 import datetime
 import os
 import shutil
+import tempfile
+import zipfile
 from typing import Union
 
 import pkg_resources
@@ -49,5 +52,26 @@ class ApiLogger:
                 logfile.write(msg)
 
 
-def delete_temp_files(temp_files_dir):
+def create_temp_csv(data: dict, filename: str, column_names: list):
+    if not isinstance(data, dict):
+        raise TypeError(f"Input must be dict, got {type(data)}")
+    current_path = os.path.dirname(os.path.realpath(__file__))
+    tmp_dir = tempfile.mkdtemp(dir=current_path)
+    compressed_file = f"{filename}.zip"
+    os.chdir(tmp_dir)
+    zip_file = zipfile.ZipFile(compressed_file, 'w')
+    csv_filename = f"{filename}.csv"
+
+    with open(f"{tmp_dir}/{csv_filename}", 'w', encoding='utf-8') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=column_names)
+        writer.writeheader()
+        for row in data:
+            writer.writerow(row)
+    zip_file.write(f'{tmp_dir}/{csv_filename}', compress_type=zipfile.ZIP_DEFLATED,
+                   arcname=os.path.basename(f"{tmp_dir}/{csv_filename}.csv"))
+    zip_file.close()
+    return compressed_file, tmp_dir
+
+
+def delete_temp_files(temp_files_dir: str):
     shutil.rmtree(temp_files_dir)

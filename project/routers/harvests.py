@@ -12,7 +12,7 @@ from project.auth import get_current_active_user
 from project.data import models as m, schemas as sc
 from project.dependencies import get_db, after_before, price_harvested_more_less, limit_offset
 from . import crud
-from ..additional import delete_temp_files
+from ..additional import delete_temp_files, create_temp_csv
 
 router = APIRouter(
     prefix="/harvests",
@@ -132,22 +132,14 @@ def harvests_get_harvest_employees_summary(background_tasks: BackgroundTasks,
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=f"Data format must be 'json' or 'csv', not {data_format}")
     harvest = crud.harvests_get(db=db, user=user, id=h_id)[0]
+    if not harvest.harvested_per_employee:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Harvest with id {h_id} has no registered employees")
     if data_format == 'csv':
-        current_path = os.path.dirname(os.path.realpath(__file__))
-        tmp_dir = tempfile.mkdtemp(dir=current_path)
-        compressed_file = f"{harvest.fruit}_harvest_{harvest.id}_{harvest.date}_employees.zip"
-        os.chdir(tmp_dir)
-        zip_file = zipfile.ZipFile(compressed_file, 'w')
-        csv_filename = f"{harvest.fruit}_harvest_{harvest.id}_{harvest.date}_employees.csv"
-
-        with open(f"{tmp_dir}/{csv_filename}", 'w', encoding='utf-8') as csv_file:
-            writer = csv.DictWriter(csv_file, fieldnames=harvest.harvested_per_employee[0].keys())
-            writer.writeheader()
-            for row in harvest.harvested_per_employee:
-                writer.writerow(row)
-        zip_file.write(f'{tmp_dir}/{csv_filename}', compress_type=zipfile.ZIP_DEFLATED,
-                       arcname=os.path.basename(f"{tmp_dir}/{csv_filename}.csv"))
-        zip_file.close()
+        filename = f"{harvest.fruit}_harvest_{harvest.id}_{harvest.date}_employees.zip"
+        compressed_file, tmp_dir = create_temp_csv(data=harvest.harvested_per_employee,
+                                                   filename=filename,
+                                                   column_names=harvest.harvested_per_employee[0].keys())
         background_tasks.add_task(delete_temp_files, tmp_dir)
         return FileResponse(path=os.path.join(tmp_dir, compressed_file), filename=compressed_file,
                             media_type='application/zip')
