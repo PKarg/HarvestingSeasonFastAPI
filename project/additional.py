@@ -1,5 +1,6 @@
 import datetime
 import os
+import shutil
 from typing import Union
 
 import pkg_resources
@@ -46,3 +47,7 @@ class ApiLogger:
                 msg = f"\n[{datetime.datetime.now().isoformat(sep='#', timespec='seconds')}]" \
                       f" {module}: {msg} \n"
                 logfile.write(msg)
+
+
+def delete_temp_files(temp_files_dir):
+    shutil.rmtree(temp_files_dir)

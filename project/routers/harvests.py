@@ -1,12 +1,18 @@
+import csv
+import os
+import tempfile
+import zipfile
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session
+from starlette.responses import FileResponse
 
 from project.auth import get_current_active_user
 from project.data import models as m, schemas as sc
 from project.dependencies import get_db, after_before, price_harvested_more_less, limit_offset
 from . import crud
+from ..additional import delete_temp_files
 
 router = APIRouter(
     prefix="/harvests",
@@ -59,20 +65,14 @@ def harvests_update(h_id: int,
     return harvest_m_updated
 
 
-@router.get("/{h_id}/employees", status_code=status.HTTP_200_OK,
-            response_model=List[sc.EmployeeResponse])
+@router.get("/{h_id}/employees", status_code=status.HTTP_200_OK)
 def harvests_get_employees(h_id: int,
                            user: m.User = Depends(get_current_active_user),
                            db: Session = Depends(get_db),
                            after_before_qp=Depends(after_before),
                            limit_offset_qp=Depends(limit_offset),
-                           name: Optional[str] = Query(None, min_length=2, max_length=10, regex=r"[a-zA-Z]+")):
+                           name: Optional[str] = Query(None, min_length=2, max_length=10, regex=r"[a-zA-Z]+"),):
     return crud.employees_get(db=db, user=user, harvest_id=h_id, name=name, **after_before_qp, **limit_offset_qp)
-
-
-@router.get("/{h_id}/employees-summary", status_code=status.HTTP_200_OK)
-def harvests_get_harvest_employees_summary():
-    pass
 
 
 @router.get("/{id}/workdays", status_code=status.HTTP_200_OK,
@@ -119,3 +119,37 @@ def harvests_get_summary(h_id: int,
         "harvested_per_emp": harvest.harvested_per_employee
     }
     return summary
+
+
+@router.get("/{h_id}/employees-summary", status_code=status.HTTP_200_OK)
+def harvests_get_harvest_employees_summary(background_tasks: BackgroundTasks,
+                                           h_id: int,
+                                           user: m.User = Depends(get_current_active_user),
+                                           db: Session = Depends(get_db),
+                                           data_format: str = Query('json', min_length=3, max_length=4)):
+    if data_format not in ('json', 'csv'):
+
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Data format must be 'json' or 'csv', not {data_format}")
+    harvest = crud.harvests_get(db=db, user=user, id=h_id)[0]
+    if data_format == 'csv':
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        tmp_dir = tempfile.mkdtemp(dir=current_path)
+        compressed_file = f"{harvest.fruit}_harvest_{harvest.id}_{harvest.date}_employees.zip"
+        os.chdir(tmp_dir)
+        zip_file = zipfile.ZipFile(compressed_file, 'w')
+        csv_filename = f"{harvest.fruit}_harvest_{harvest.id}_{harvest.date}_employees.csv"
+
+        with open(f"{tmp_dir}/{csv_filename}", 'w', encoding='utf-8') as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=harvest.harvested_per_employee[0].keys())
+            writer.writeheader()
+            for row in harvest.harvested_per_employee:
+                writer.writerow(row)
+        zip_file.write(f'{tmp_dir}/{csv_filename}', compress_type=zipfile.ZIP_DEFLATED,
+                       arcname=os.path.basename(f"{tmp_dir}/{csv_filename}.csv"))
+        zip_file.close()
+        background_tasks.add_task(delete_temp_files, tmp_dir)
+        return FileResponse(path=os.path.join(tmp_dir, compressed_file), filename=compressed_file,
+                            media_type='application/zip')
+    else:
+        return harvest.harvested_per_employee
