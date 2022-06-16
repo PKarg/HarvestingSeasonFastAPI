@@ -97,5 +97,10 @@ def get_employee_summary(e_id: int,
         "name": employee.name,
         "start_date": employee.start_date,
         "end_date": employee.end_date,
-        "harvested_by_fruit": []
+        "total_earnings": employee.total_earnings,
+        "harvested_by_fruit": employee.harvested_per_fruit,
+        "earnings_by_fruit": employee.earned_per_fruit,
+        'best_harvest': employee.best_harvest,
+        "harvest_history": employee.harvests_history
     }
+    return summary

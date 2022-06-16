@@ -1,5 +1,6 @@
 from enum import Enum
 
+import websockets.extensions.permessage_deflate
 from sqlalchemy import Column, Integer, ForeignKey, String,\
     Boolean, DATE, DECIMAL, Table, UniqueConstraint
 from sqlalchemy.orm import relationship
@@ -87,7 +88,7 @@ class Harvest(Base):
                  "earned": round(float(w.harvested * w.pay_per_kg), 2)} for w in self.workdays]
 
     def harvested_max(self):
-        return max([round(float(w.harvested), 2) for w in self.workdays])
+        return max([w.harvested for w in self.workdays])
 
     def best_employee(self):
         return next((emp
@@ -95,23 +96,29 @@ class Harvest(Base):
                      in self.harvested_per_employee()
                      if emp['harvested'] == self.harvested_max()), None)
 
+    @property
     def total_profits(self):
         return self.harvested * self.price
 
+    @property
     def harvested_by_employees(self):
         return sum([w.harvested for w in self.workdays])
 
+    @property
     def avg_pay_per_kg(self):
         return sum([w.harvested * w.pay_per_kg for w in self.workdays]) / sum([w.harvested for w in self.workdays])
 
+    @property
     def self_harvested(self):
-        return self.harvested - self.harvested_by_employees()
+        return self.harvested - self.harvested_by_employees
 
+    @property
     def self_harvested_profits(self):
-        return self.self_harvested() * self.price
+        return self.self_harvested * self.price
 
+    @property
     def net_profit(self):
-        return self.harvested * self.price - self.harvested_by_employees() * self.avg_pay_per_kg()
+        return self.harvested * self.price - self.harvested_by_employees * self.avg_pay_per_kg
 
 
 class Expense(Base):
@@ -144,6 +151,41 @@ class Employee(Base):
                             back_populates="employees")
 
     workdays = relationship("Workday", back_populates="employee", cascade="all, delete")
+
+    @property
+    def fruits(self):
+        return set([w.fruit for w in self.workdays])
+
+    @property
+    def harvested_per_fruit(self):
+        return {f: sum([w.harvested for w in
+                        filter(lambda w: w.fruit == f, self.workdays)]) for f in self.fruits}
+
+    @property
+    def earned_per_fruit(self):
+        return {f: sum([w.harvested*w.pay_per_kg for w in
+                        filter(lambda w: w.fruit == f, self.workdays)]) for f in self.fruits}
+
+    @property
+    def total_earnings(self):
+        return sum(self.earned_per_fruit.values())
+
+    @property
+    def harvests_history(self):
+        h_history = [{"date": w.harvest.date,
+                      "fruit": w.fruit,
+                      "harvested": w.harvested,
+                      "pay_per_kg": w.pay_per_kg,
+                      "earned": w.harvested * w.pay_per_kg} for w in self.workdays]
+        return h_history
+
+    @property
+    def best_harvest(self):
+        max_harvested = max([w.harvested for w in self.workdays])
+        return next((har
+                     for har
+                     in self.harvests_history
+                     if har['harvested'] == max_harvested), None)
 
 
 class Workday(Base):
