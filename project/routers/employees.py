@@ -86,3 +86,16 @@ def employee_create_workday(e_id: int,
                             db: Session = Depends(get_db)):
     return crud.workday_create(db=db, user=user, data=workday_data, e_id=e_id)
 
+
+@router.get("/{e_id}/summary", status_code=status.HTTP_200_OK)
+def get_employee_summary(e_id: int,
+                         user: m.User = Depends(get_current_active_user),
+                         db: Session = Depends(get_db)):
+    employee = crud.employees_get(db=db, user=user, id=e_id)[0]
+    summary = {
+        "id": employee.id,
+        "name": employee.name,
+        "start_date": employee.start_date,
+        "end_date": employee.end_date,
+        "harvested_by_fruit": []
+    }

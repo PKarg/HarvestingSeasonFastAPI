@@ -80,20 +80,20 @@ class Harvest(Base):
 
     workdays = relationship("Workday", back_populates="harvest", cascade="all, delete")
 
-    # TODO finish data aggregations
     def harvested_per_employee(self):
-        return {w.employee.name: (round(float(w.harvested), 2),
-                                  round(float(w.pay_per_kg), 2),
-                                  round(float(w.harvested * w.pay_per_kg), 2)) for w in self.workdays}
+        return [{"name": w.employee.name,
+                 "harvested": round(float(w.harvested), 2),
+                 "pay_per_kg": round(float(w.pay_per_kg), 2),
+                 "earned": round(float(w.harvested * w.pay_per_kg), 2)} for w in self.workdays]
 
     def harvested_max(self):
         return max([round(float(w.harvested), 2) for w in self.workdays])
 
     def best_employee(self):
-        return next(({emp: har}
-                     for emp, har
-                     in self.harvested_per_employee().items()
-                     if har[0] == self.harvested_max()), None)
+        return next((emp
+                     for emp
+                     in self.harvested_per_employee()
+                     if emp['harvested'] == self.harvested_max()), None)
 
     def total_profits(self):
         return self.harvested * self.price
@@ -102,7 +102,13 @@ class Harvest(Base):
         return sum([w.harvested for w in self.workdays])
 
     def avg_pay_per_kg(self):
-        return sum([w.pay_per_kg for w in self.workdays])/len(self.workdays) if self.workdays else 0
+        return sum([w.harvested * w.pay_per_kg for w in self.workdays]) / sum([w.harvested for w in self.workdays])
+
+    def self_harvested(self):
+        return self.harvested - self.harvested_by_employees()
+
+    def self_harvested_profits(self):
+        return self.self_harvested() * self.price
 
     def net_profit(self):
         return self.harvested * self.price - self.harvested_by_employees() * self.avg_pay_per_kg()
