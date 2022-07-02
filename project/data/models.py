@@ -1,6 +1,5 @@
 from enum import Enum
 
-import websockets.extensions.permessage_deflate
 from sqlalchemy import Column, Integer, ForeignKey, String,\
     Boolean, DATE, DECIMAL, Table, UniqueConstraint
 from sqlalchemy.orm import relationship
@@ -56,8 +55,31 @@ class Season(Base):
     employees = relationship("Employee", back_populates="season", cascade="all, delete")
     expenses = relationship("Expense", back_populates="season", cascade="all, delete")
 
-    def print_employees(self):
-        print(self.employees)
+    @property
+    def fruits(self):
+        return set([h.fruit for h in self.harvests])
+
+    @property
+    def harvested_per_fruit(self):
+        return {f: sum([h.harvested for h in
+                        filter(lambda h: h.fruit == f, self.harvests)]) for f in self.fruits}
+
+    @property
+    def value_per_fruit(self):
+        return {f: sum([h.harvested * h.price for h in
+                filter(lambda h: h.fruit == f, self.harvests)]) for f in self.fruits}
+
+    @property
+    def total_harvested_value(self):
+        return sum([h.harvested * h.price for h in self.harvests])
+
+    @property
+    def total_expenses_value(self):
+        return sum([e.amount for e in self.expenses])
+
+    @property
+    def total_employee_payments(self):
+        return sum(e.total_earnings for e in self.employees)
 
 
 class Harvest(Base):
@@ -98,7 +120,7 @@ class Harvest(Base):
         return next((emp
                      for emp
                      in self.harvested_per_employee
-                     if emp['harvested'] == self.harvested_max), None)
+                     if emp['harvested'] == self.harvested_max), '')
 
     @property
     def total_profits(self):

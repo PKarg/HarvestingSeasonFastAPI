@@ -123,7 +123,24 @@ def expenses_get(year: int,
 
 
 @router.get("/{year}/summary")
-def report_single_season():
+def report_single_season(year: int,
+                         user: m.User = Depends(get_current_active_user),
+                         db: Session = Depends(get_db)):
+    season = crud.season_get(db=db, user=user, year=year)[0]
+    season_report = {
+        'year': year,
+        'start_date': season.start_date,
+        'end_date': season.end_date,
+        'fruits': season.fruits,
+        'employees_n': len(season.employees),
+        'harvests_n': len(season.harvests),
+        'total_harvested_value': season.total_harvested_value,
+        'total_employee_payments': season.total_employee_payments,
+        'harvested_per_fruit': season.harvested_per_fruit,
+        'value_per_fruit': season.value_per_fruit,
+        'total_expenses_value': season.total_expenses_value,
+        'bet_profits': season.total_harvested_value - season.total_employee_payments - season.total_expenses_value
+    }
     # TODO data in report:
     #   - year
     #   - num of employees
@@ -136,4 +153,4 @@ def report_single_season():
     #   - summary of each fruit - total harvested, total revenue,
     #       - number of harvests, best and worst harvest, best employee, worst employee
     #       - first harvest, last harvest
-    pass
+    return season_report

@@ -45,16 +45,6 @@ def expense_update(ex_id: int,
     return crud.expense_update(db=db, id=ex_id, user=user, data=expense_data)
 
 
-@router.put("/{ex_id}", status_code=status.HTTP_200_OK,
-            response_model=sc.ExpenseResponse)
-def expense_replace(ex_id: int,
-                    expense_data: sc.ExpenseReplace,
-                    user: m.User = Depends(get_current_active_user),
-                    db: Session = Depends(get_db)):
-    # TODO implement
-    pass
-
-
 @router.delete("/{e_id}", status_code=status.HTTP_200_OK)
 def expense_update(ex_id: int,
                    user: m.User = Depends(get_current_active_user),
