@@ -81,6 +81,28 @@ class Season(Base):
     def total_employee_payments(self):
         return sum(e.total_earnings for e in self.employees)
 
+    @property
+    def best_harvest(self):
+        best_h: Harvest = max(self.harvests, key=lambda h: h.harvested * h.price, default={})
+        return {'id': best_h.id, 'date': best_h.date, 'fruit': best_h.fruit,
+                'harvested_value': best_h.harvested * best_h.price} if best_h \
+            else {'id': 0, 'date': '', 'fruit': '', 'harvested_value': 0}
+
+    @property
+    def best_employee(self):
+        best_e: Employee = max(self.employees, key=lambda e: e.total_harvested, default={})
+        return {'id': best_e.id, 'name': best_e.name, 'total_harvested': best_e.total_harvested} if best_e \
+            else {'id': 0, 'name': '', 'total_harvested': 0}
+
+    @property
+    def best_employees_per_fruit(self):
+        best_emp_per_fruit = {}
+        for f in self.fruits:
+            best_emp: Employee = max(self.employees, key=lambda e: e.harvested_per_fruit[f], default={})
+            best_emp_per_fruit[f] = {'id': best_emp.id, 'name': best_emp.name,
+                                     'harvested': best_emp.harvested_per_fruit[f]} if best_emp else {'id': 0, 'name': ''}
+        return best_emp_per_fruit
+
 
 class Harvest(Base):
     __tablename__ = "harvests"
@@ -113,14 +135,14 @@ class Harvest(Base):
 
     @property
     def harvested_max(self):
-        return max([w.harvested for w in self.workdays])
+        return max([w.harvested for w in self.workdays], default=0)
 
     @property
     def best_employee(self):
         return next((emp
                      for emp
                      in self.harvested_per_employee
-                     if emp['harvested'] == self.harvested_max), '')
+                     if emp['harvested'] == self.harvested_max), {})
 
     @property
     def total_profits(self):
@@ -188,6 +210,10 @@ class Employee(Base):
                         filter(lambda w: w.fruit == f, self.workdays)]) for f in self.fruits}
 
     @property
+    def total_harvested(self):
+        return sum(w.harvested for w in self.workdays)
+
+    @property
     def earned_per_fruit(self):
         return {f: sum([w.harvested*w.pay_per_kg for w in
                         filter(lambda w: w.fruit == f, self.workdays)]) for f in self.fruits}
@@ -208,11 +234,11 @@ class Employee(Base):
 
     @property
     def best_harvest(self):
-        max_harvested = max([w.harvested for w in self.workdays])
+        max_harvested = max([w.harvested for w in self.workdays], default=0)
         return next((har
                      for har
                      in self.harvests_history
-                     if har['harvested'] == max_harvested), None)
+                     if har['harvested'] == max_harvested), {})
 
 
 class Workday(Base):

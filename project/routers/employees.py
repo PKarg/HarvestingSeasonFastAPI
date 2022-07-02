@@ -126,7 +126,7 @@ def harvests_get_harvest_employees_summary(background_tasks: BackgroundTasks,
         filename = f"employee_{employee.name}_{employee.id}_harvests"
         compressed_file, tmp_dir = create_temp_csv(data=employee.harvests_history,
                                                    filename=filename,
-                                                   column_names=employee.harvests_history[0].keys())
+                                                   column_names=[k for k in employee.harvests_history[0].keys()])
         background_tasks.add_task(delete_temp_files, tmp_dir)
         return FileResponse(path=os.path.join(tmp_dir, compressed_file), filename=compressed_file,
                             media_type='application/zip')

@@ -5,7 +5,7 @@ from typing import Optional, List, Union
 from fastapi import HTTPException, status
 from sqlalchemy import extract
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, Query
 from project.data import models as m, schemas as sc
 from .validations import validate_date_qp, validate_date_in_bounds, validate_date_in_season_bounds, validate_fruit_qp
 
@@ -372,7 +372,7 @@ def expenses_get(db: Session, user: m.User,
                  limit: Optional[int] = None,
                  offset: Optional[int] = None
                  ) -> List[m.Expense]:
-    expenses = db.query(m.Expense).filter(m.Expense.owner_id == user.id)
+    expenses: Query = db.query(m.Expense).filter(m.Expense.owner_id == user.id)
     if id:
         expenses = expenses.filter(m.Expense.id == id)
     if year:
@@ -401,7 +401,7 @@ def expenses_get(db: Session, user: m.User,
         expenses = expenses.offset(offset)
     if limit:
         expenses = expenses.limit(limit)
-    expenses = expenses.all()
+    expenses: List[m.Expense] = expenses.all()
     if not expenses:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Couldn't find Expense with specified parameters")

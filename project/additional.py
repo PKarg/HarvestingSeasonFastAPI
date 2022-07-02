@@ -52,9 +52,11 @@ class ApiLogger:
                 logfile.write(msg)
 
 
-def create_temp_csv(data: list, filename: str, column_names: list):
+def create_temp_csv(data: list, filename: str, column_names: list[str]):
     if not isinstance(data, list):
         raise TypeError(f"Input must be dict, got {type(data)}")
+    if not isinstance(column_names, list):
+        raise TypeError(f"Column names have to be list of str, got {type(column_names)}")
     current_path = os.path.dirname(os.path.realpath(__file__))
     tmp_dir = tempfile.mkdtemp(dir=current_path)
     compressed_file = f"{filename}.zip"

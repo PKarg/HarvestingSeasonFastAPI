@@ -1,13 +1,17 @@
 import decimal
+import os
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, HTTPException
 from sqlalchemy.orm import Session
+from starlette.background import BackgroundTasks
+from starlette.responses import FileResponse
 
 from project.auth import get_current_active_user
 from project.data import models as m, schemas as sc
 from project.dependencies import get_db, limit_offset, after_before, price_harvested_more_less
 from . import crud
+from ..additional import create_temp_csv, delete_temp_files
 
 router = APIRouter(
     prefix="/seasons",
@@ -30,6 +34,46 @@ def seasons_get_all(user: m.User = Depends(get_current_active_user),
                     after_before_qp=Depends(after_before)):
     return crud.season_get(db=db, user=user, **after_before_qp,
                            **limit_offset_qp)
+
+
+@router.get("/summary")
+def report_multiple_seasons(background_tasks: BackgroundTasks,
+                            user: m.User = Depends(get_current_active_user),
+                            db: Session = Depends(get_db),
+                            limit_offset_qp=Depends(limit_offset),
+                            after_before_qp=Depends(after_before),
+                            data_format: str = Query('json', min_length=3, max_length=4)):
+    if data_format not in ('json', 'csv'):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Data format must be 'json' or 'csv', not {data_format}")
+    seasons = crud.season_get(db=db, user=user, **after_before_qp,
+                              **limit_offset_qp)
+    summaries = [{
+            'id': s.id,
+            'year': s.year,
+            'start_date': s.start_date,
+            'end_date': s.end_date,
+            'fruits': s.fruits,
+            'employees_n': len(s.employees),
+            'best_employee': s.best_employee['name'],
+            'harvests_n': len(s.harvests),
+            'best_harvest': s.best_harvest['date'],
+            'total_harvested_value': s.total_harvested_value,
+            'total_employee_payments': s.total_employee_payments,
+            'total_expenses_value': s.total_expenses_value,
+            'net_profits': s.total_harvested_value - s.total_employee_payments - s.total_expenses_value
+        } for s in seasons]
+
+    if data_format == 'csv':
+        filename = f"user_{user.name}_{user.id}_seasons"
+        compressed_file, tmp_dir = create_temp_csv(data=summaries,
+                                                   filename=filename,
+                                                   column_names=[k for k in summaries[0].keys()])
+        background_tasks.add_task(delete_temp_files, tmp_dir)
+        return FileResponse(path=os.path.join(tmp_dir, compressed_file), filename=compressed_file,
+                            media_type='application/zip')
+    else:
+        return summaries
 
 
 @router.get("/{year}", status_code=status.HTTP_200_OK,
@@ -128,29 +172,21 @@ def report_single_season(year: int,
                          db: Session = Depends(get_db)):
     season = crud.season_get(db=db, user=user, year=year)[0]
     season_report = {
+        'id': season.id,
         'year': year,
         'start_date': season.start_date,
         'end_date': season.end_date,
         'fruits': season.fruits,
         'employees_n': len(season.employees),
+        'best_employee': season.best_employee,
+        'best_employee_per_fruit': season.best_employees_per_fruit,
         'harvests_n': len(season.harvests),
+        'best_harvest': season.best_harvest,
         'total_harvested_value': season.total_harvested_value,
         'total_employee_payments': season.total_employee_payments,
         'harvested_per_fruit': season.harvested_per_fruit,
         'value_per_fruit': season.value_per_fruit,
         'total_expenses_value': season.total_expenses_value,
-        'bet_profits': season.total_harvested_value - season.total_employee_payments - season.total_expenses_value
+        'net_profits': season.total_harvested_value - season.total_employee_payments - season.total_expenses_value
     }
-    # TODO data in report:
-    #   - year
-    #   - num of employees
-    #   - num of harvests
-    #   - list of harvested fruits
-    #   - total earnings
-    #   - total expenses
-    #   - total employee payments
-    #   - net revenue
-    #   - summary of each fruit - total harvested, total revenue,
-    #       - number of harvests, best and worst harvest, best employee, worst employee
-    #       - first harvest, last harvest
     return season_report

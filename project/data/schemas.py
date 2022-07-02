@@ -86,10 +86,6 @@ class HarvestResponse(HarvestResponseBase):
         orm_mode = True
 
 
-class HarvestReplace(HarvestCreate):
-    pass
-
-
 # Inheriting validators for decimal values
 class HarvestUpdate(HarvestBase):
     fruit: Optional[str] = None
