@@ -65,7 +65,7 @@ def report_multiple_seasons(background_tasks: BackgroundTasks,
         } for s in seasons]
 
     if data_format == 'csv':
-        filename = f"user_{user.name}_{user.id}_seasons"
+        filename = f"user_{user.username}_{user.id}_seasons"
         compressed_file, tmp_dir = create_temp_csv(data=summaries,
                                                    filename=filename,
                                                    column_names=[k for k in summaries[0].keys()])
