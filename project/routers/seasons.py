@@ -9,7 +9,7 @@ from starlette.responses import FileResponse
 
 from project.auth import get_current_active_user
 from project.data import models as m, schemas as sc
-from project.dependencies import get_db, limit_offset, after_before, price_harvested_more_less
+from project.dependencies import get_db, limit_offset, after_before, price_harvested_more_less, order_by_query
 from . import crud
 from ..additional import create_temp_csv, delete_temp_files
 
@@ -31,9 +31,10 @@ def seasons_post(season_data: sc.SeasonBase,
 def seasons_get_all(user: m.User = Depends(get_current_active_user),
                     db: Session = Depends(get_db),
                     limit_offset_qp=Depends(limit_offset),
-                    after_before_qp=Depends(after_before)):
+                    after_before_qp=Depends(after_before),
+                    order_by_qp=Depends(order_by_query)):
     return crud.season_get(db=db, user=user, **after_before_qp,
-                           **limit_offset_qp)
+                           **limit_offset_qp, **order_by_qp)
 
 
 @router.get("/summary")
@@ -42,12 +43,13 @@ def report_multiple_seasons(background_tasks: BackgroundTasks,
                             db: Session = Depends(get_db),
                             limit_offset_qp=Depends(limit_offset),
                             after_before_qp=Depends(after_before),
+                            order_by_qp=Depends(order_by_query),
                             data_format: str = Query('json', min_length=3, max_length=4)):
     if data_format not in ('json', 'csv'):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=f"Data format must be 'json' or 'csv', not {data_format}")
     seasons = crud.season_get(db=db, user=user, **after_before_qp,
-                              **limit_offset_qp)
+                              **limit_offset_qp, **order_by_qp)
     summaries = [{
             'id': s.id,
             'year': s.year,
@@ -118,9 +120,11 @@ def harvests_get(year: int,
                  after_before_qp=Depends(after_before),
                  fruit: Optional[str] = Query(None, min_length=3, max_length=30),
                  price_harvested_qp=Depends(price_harvested_more_less),
+                 order_by_qp=Depends(order_by_query),
                  limit_offset_qp=Depends(limit_offset)):
     return crud.harvests_get(db, user, year=year,
-                             fruit=fruit, **price_harvested_qp, **after_before_qp, **limit_offset_qp)
+                             fruit=fruit, **price_harvested_qp, **after_before_qp,
+                             **limit_offset_qp,  **order_by_qp)
 
 
 @router.post("/{year}/employees", status_code=status.HTTP_201_CREATED,
@@ -139,8 +143,10 @@ def employees_get(year: int,
                   db: Session = Depends(get_db),
                   after_before_qp=Depends(after_before),
                   limit_offset_qp=Depends(limit_offset),
+                  order_by_qp=Depends(order_by_query),
                   name: Optional[str] = Query(None, min_length=2, max_length=10, regex=r"[a-zA-Z]+")):
-    return crud.employees_get(db=db, user=user, year=year, name=name, **after_before_qp, **limit_offset_qp)
+    return crud.employees_get(db=db, user=user, year=year, name=name,
+                              **after_before_qp, **limit_offset_qp, **order_by_qp)
 
 
 @router.post("/{year}/expenses", status_code=status.HTTP_201_CREATED,
@@ -161,9 +167,10 @@ def expenses_get(year: int,
                  more: Optional[decimal.Decimal] = Query(None, gt=0),
                  less: Optional[decimal.Decimal] = Query(None, gt=0),
                  after_before_qp=Depends(after_before),
-                 limit_offset_qp=Depends(limit_offset)):
+                 limit_offset_qp=Depends(limit_offset),
+                 order_by_qp=Depends(order_by_query)):
     return crud.expenses_get(db=db, user=user, year=year, type=type, more=more, less=less,
-                             **after_before_qp, **limit_offset_qp)
+                             **after_before_qp, **limit_offset_qp,  **order_by_qp)
 
 
 @router.get("/{year}/summary")

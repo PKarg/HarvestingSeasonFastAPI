@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from project.auth import get_current_active_user
 from project.data import models as m, schemas as sc
-from project.dependencies import get_db, price_harvested_more_less, limit_offset
+from project.dependencies import get_db, price_harvested_more_less, limit_offset, order_by_query
 from . import crud
 
 router = APIRouter(
@@ -20,8 +20,10 @@ def workdays_get_all(user: m.User = Depends(get_current_active_user),
                      db: Session = Depends(get_db),
                      price_harvested_qp=Depends(price_harvested_more_less),
                      fruit: Optional[str] = Query(None, min_length=5, max_length=20),
-                     limit_offset_qp=Depends(limit_offset)):
-    return crud.workdays_get(db=db, user=user, **price_harvested_qp, **limit_offset_qp, fruit=fruit)
+                     limit_offset_qp=Depends(limit_offset),
+                     order_by_qp=Depends(order_by_query)):
+    return crud.workdays_get(db=db, user=user, **price_harvested_qp, **limit_offset_qp,
+                             fruit=fruit, **order_by_qp)
 
 
 @router.get("/{w_id}", status_code=status.HTTP_200_OK,

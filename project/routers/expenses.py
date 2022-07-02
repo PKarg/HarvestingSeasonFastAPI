@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from project.auth import get_current_active_user
 from project.data import models as m, schemas as sc
-from project.dependencies import get_db
+from project.dependencies import get_db, order_by_query
 from . import crud
 
 router = APIRouter(
@@ -21,11 +21,12 @@ def expense_get_all(user: m.User = Depends(get_current_active_user),
                     type: Optional[str] = Query(None, min_length=2, max_length=30, regex=r"[a-zA-Z]+"),
                     after: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
                     before: Optional[str] = Query(None, min_length=10, max_length=10, regex=r"^[0-9]+(-[0-9]+)+$"),
+                    order_by_qp=Depends(order_by_query),
                     more: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                     less: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$"),
                     season_id: Optional[str] = Query(None, regex=r"^ *\d[\d ]*$")):
     return crud.expenses_get(db=db, user=user, season_id=season_id, type=type, after=after,
-                             before=before, more=more, less=less)
+                             before=before, more=more, less=less, **order_by_qp)
 
 
 @router.get("/{ex_id}", status_code=status.HTTP_200_OK,

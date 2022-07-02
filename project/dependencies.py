@@ -30,3 +30,7 @@ async def price_harvested_more_less(p_more: Optional[decimal.Decimal] = Query(No
                                     h_less: Optional[decimal.Decimal] = Query(None, le=5000)):
     return {"p_more": p_more, "p_less": p_less, "h_more": h_more, "h_less": h_less}
 
+
+async def order_by_query(order_by: Optional[str] = Query(default='', max_length=20),
+                         order: Optional[str] = Query(default='desc', max_length=20)):
+    return {'order_by': order_by, 'order': order}

@@ -10,7 +10,7 @@ from starlette.responses import FileResponse
 
 from project.auth import get_current_active_user
 from project.data import models as m, schemas as sc
-from project.dependencies import get_db, after_before, price_harvested_more_less, limit_offset
+from project.dependencies import get_db, after_before, price_harvested_more_less, limit_offset, order_by_query
 from . import crud
 from ..additional import delete_temp_files, create_temp_csv
 
@@ -29,9 +29,11 @@ def harvests_get_all(user: m.User = Depends(get_current_active_user),
                      fruit: Optional[str] = Query(None, min_length=5, max_length=20),
                      after_before_qp=Depends(after_before),
                      price_harvested_qp=Depends(price_harvested_more_less),
-                     limit_offset_qp=Depends(limit_offset)):
+                     limit_offset_qp=Depends(limit_offset),
+                     order_by_qp=Depends(order_by_query)):
     return crud.harvests_get(db, user, fruit=fruit, year=year, season_id=season_id,
-                             **after_before_qp, **price_harvested_qp, **limit_offset_qp)
+                             **after_before_qp, **price_harvested_qp, **limit_offset_qp,
+                             **order_by_qp)
 
 
 @router.get("/{h_id}", status_code=status.HTTP_200_OK,
@@ -71,8 +73,10 @@ def harvests_get_employees(h_id: int,
                            db: Session = Depends(get_db),
                            after_before_qp=Depends(after_before),
                            limit_offset_qp=Depends(limit_offset),
+                           order_by_qp=Depends(order_by_query),
                            name: Optional[str] = Query(None, min_length=2, max_length=10, regex=r"[a-zA-Z]+"),):
-    return crud.employees_get(db=db, user=user, harvest_id=h_id, name=name, **after_before_qp, **limit_offset_qp)
+    return crud.employees_get(db=db, user=user, harvest_id=h_id, name=name,
+                              **after_before_qp, **limit_offset_qp, **order_by_qp)
 
 
 @router.get("/{id}/workdays", status_code=status.HTTP_200_OK,
@@ -82,9 +86,10 @@ def harvests_get_workdays(h_id: int,
                           db: Session = Depends(get_db),
                           fruit: Optional[str] = Query(None, min_length=5, max_length=20),
                           price_harvested_qp=Depends(price_harvested_more_less),
-                          limit_offset_qp=Depends(limit_offset)):
+                          limit_offset_qp=Depends(limit_offset),
+                          order_by_qp=Depends(order_by_query)):
     return crud.workdays_get(db=db, user=user, h_id=h_id,
-                             fruit=fruit, **price_harvested_qp, **limit_offset_qp)
+                             fruit=fruit, **price_harvested_qp, **limit_offset_qp, **order_by_qp)
 
 
 @router.post("/{id}/workdays", status_code=status.HTTP_201_CREATED,

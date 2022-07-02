@@ -87,3 +87,19 @@ def validate_date_in_bounds(start_date: datetime.date,
         return False
     else:
         return True
+
+
+def validate_order_by(order_by: str, order: str, orders: dict):
+    if not isinstance(orders, dict):
+        raise TypeError(f"Orders must be passed as dict, not {type(orders)}")
+    for k in orders.keys():
+        if not isinstance(k, str):
+            raise TypeError(f"Each ordering parameter must be of type str, not {type(k)}")
+    if not orders:
+        raise ValueError("'orders' can't be empty")
+    if order not in ('desc', 'asc'):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Order can only be desc, asc, not {order}")
+    if order_by not in orders.keys():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Seasons can be ordered only by {orders.keys()}, not {order_by}")

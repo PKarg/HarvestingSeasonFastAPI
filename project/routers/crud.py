@@ -7,7 +7,8 @@ from sqlalchemy import extract
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, Query
 from project.data import models as m, schemas as sc
-from .validations import validate_date_qp, validate_date_in_bounds, validate_date_in_season_bounds, validate_fruit_qp
+from .validations import validate_date_qp, validate_date_in_bounds,\
+    validate_date_in_season_bounds, validate_fruit_qp, validate_order_by
 
 
 # SEASONS ===============================================================================================
@@ -42,8 +43,10 @@ def season_get(db: Session, user: m.User,
                after: Optional[str] = None,
                before: Optional[str] = None,
                limit: Optional[int] = None,
-               offset: Optional[int] = None) -> List[m.Season]:
-    seasons: db.query = db.query(m.Season)\
+               offset: Optional[int] = None,
+               order_by: Optional[str] = None,
+               order: Optional[str] = 'desc') -> List[m.Season]:
+    seasons: Query = db.query(m.Season)\
         .options(
         joinedload(m.Season.employees),
         joinedload(m.Season.harvests),
@@ -57,12 +60,16 @@ def season_get(db: Session, user: m.User,
     if before:
         before = validate_date_qp(before)
         seasons = seasons.filter(m.Season.start_date > before)
+    if order_by:
+        orders = {'year': m.Season.year}
+        validate_order_by(order_by=order_by, order=order, orders=orders)
+        seasons = seasons.order_by(orders[order_by].desc() if order == 'desc' else orders[order_by].asc())
     if offset:
         seasons = seasons.offset(offset)
     if limit:
         seasons = seasons.limit(limit)
 
-    seasons = seasons.all()
+    seasons: List[m.Season] = seasons.all()
     if not seasons:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Couldn't find Seasons with specified parameters")
@@ -141,7 +148,10 @@ def harvests_get(db: Session, user: m.User,
                  p_more: Optional[decimal.Decimal] = None,
                  p_less: Optional[decimal.Decimal] = None,
                  h_more: Optional[decimal.Decimal] = None,
-                 h_less: Optional[decimal.Decimal] = None) -> List[m.Harvest]:
+                 h_less: Optional[decimal.Decimal] = None,
+                 order_by: Optional[str] = None,
+                 order: Optional[str] = 'desc'
+                 ) -> List[m.Harvest]:
 
     harvests = db.query(m.Harvest).filter(m.Harvest.owner_id == user.id)
     if id and type(id) == int:
@@ -177,6 +187,13 @@ def harvests_get(db: Session, user: m.User,
         employee_m: m.Employee = employees_get(db=db, user=user, id=employee_id)[0]
         harvest_ids = [h.id for h in employee_m.harvests]
         harvests = harvests.filter(m.Harvest.id.in_(harvest_ids))
+    if order_by:
+        orders = {'fruit': m.Harvest.fruit,
+                  'harvested': m.Harvest.harvested,
+                  'date': m.Harvest.date,
+                  'price': m.Harvest.price}
+        validate_order_by(order_by=order_by, order=order, orders=orders)
+        harvests = harvests.order_by(orders[order_by].desc() if order == 'desc' else orders[order_by].asc())
     if offset:
         harvests = harvests.offset(offset)
     if limit:
@@ -268,7 +285,9 @@ def employees_get(db: Session, user: m.User,
                   after: Optional[str] = None,
                   before: Optional[str] = None,
                   limit: Optional[int] = None,
-                  offset: Optional[int] = None
+                  offset: Optional[int] = None,
+                  order_by: Optional[str] = None,
+                  order: Optional[str] = 'desc'
                   ) -> List[m.Employee]:
     employees = db.query(m.Employee).filter(m.Employee.employer_id == user.id)
     if id and not ids:
@@ -295,6 +314,12 @@ def employees_get(db: Session, user: m.User,
     if before:
         before = validate_date_qp(before)
         employees = employees.filter(m.Employee.start_date < before)
+    if order_by:
+        orders = {'name': m.Employee.name,
+                  'start-date': m.Employee.start_date,
+                  'end-date': m.Employee.end_date}
+        validate_order_by(order_by=order_by, order=order, orders=orders)
+        employees = employees.order_by(orders[order_by].desc() if order == 'desc' else orders[order_by].asc())
     if offset:
         employees = employees.offset(offset)
     if limit:
@@ -370,7 +395,9 @@ def expenses_get(db: Session, user: m.User,
                  more: Optional[decimal.Decimal] = None,
                  less: Optional[decimal.Decimal] = None,
                  limit: Optional[int] = None,
-                 offset: Optional[int] = None
+                 offset: Optional[int] = None,
+                 order_by: Optional[str] = None,
+                 order: Optional[str] = 'desc'
                  ) -> List[m.Expense]:
     expenses: Query = db.query(m.Expense).filter(m.Expense.owner_id == user.id)
     if id:
@@ -397,6 +424,12 @@ def expenses_get(db: Session, user: m.User,
     if less:
         less = decimal.Decimal(less)
         expenses = expenses.filter(m.Expense.amount < less)
+    if order_by:
+        orders = {'type': m.Expense.type,
+                  'date': m.Expense.date,
+                  'amount': m.Expense.amount}
+        validate_order_by(order_by=order_by, order=order, orders=orders)
+        expenses = expenses.order_by(orders[order_by].desc() if order == 'desc' else orders[order_by].asc())
     if offset:
         expenses = expenses.offset(offset)
     if limit:
@@ -472,7 +505,9 @@ def workdays_get(db: Session,
                  p_more: Optional[decimal.Decimal] = None,
                  p_less: Optional[decimal.Decimal] = None,
                  limit: Optional[int] = None,
-                 offset: Optional[int] = None
+                 offset: Optional[int] = None,
+                 order_by: Optional[str] = None,
+                 order: Optional[str] = 'desc'
                  ) -> List[m.Workday]:
     workdays = db.query(m.Workday).filter(m.Workday.employer_id == user.id)
     if h_id:
@@ -495,6 +530,12 @@ def workdays_get(db: Session,
         workdays = workdays.filter(m.Workday.fruit == fruit)
     if id:
         workdays = workdays.filter(m.Workday.id == id),
+    if order_by:
+        orders = {'harvested': m.Workday.harvested,
+                  'fruit': m.Workday.fruit,
+                  'pay-per-kg': m.Workday.pay_per_kg}
+        validate_order_by(order_by=order_by, order=order, orders=orders)
+        workdays = workdays.order_by(orders[order_by].desc() if order == 'desc' else orders[order_by].asc())
     if offset:
         workdays = workdays.offset(offset)
     if limit:
