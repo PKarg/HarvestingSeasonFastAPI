@@ -12,8 +12,7 @@ from project.auth import get_current_active_user
 from project.data import models as m, schemas as sc
 from project.dependencies import get_db, limit_offset, after_before, price_harvested_more_less, order_by_query
 from . import crud
-from ..additional import create_temp_csv, delete_temp_files, DecimalEncoder
-
+from ..additional import create_temp_csv, delete_temp_files
 router = APIRouter(
     prefix="/seasons",
     tags=["seasons"]

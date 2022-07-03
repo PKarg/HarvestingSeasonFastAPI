@@ -1,12 +1,10 @@
 import csv
 import datetime
-import decimal
-import json
 import os
 import shutil
 import tempfile
 import zipfile
-from typing import Union, Any
+from typing import Union
 
 import pkg_resources
 
@@ -79,10 +77,3 @@ def create_temp_csv(data: list, filename: str, column_names: list[str]):
 
 def delete_temp_files(temp_files_dir: str):
     shutil.rmtree(temp_files_dir)
-
-# Overwrite built-in DecimalEncoder
-class DecimalEncoder(json.JSONEncoder):
-    def default(self, o: Any) -> Any:
-        if isinstance(o, decimal.Decimal):
-            return str(o)
-        return json.JSONEncoder.default(self, o)
