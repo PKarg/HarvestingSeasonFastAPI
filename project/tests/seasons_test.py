@@ -1,5 +1,4 @@
 import datetime
-import json
 from typing import Tuple, Optional, List
 
 from pytest import fixture

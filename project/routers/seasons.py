@@ -113,7 +113,7 @@ def harvests_post(year: int,
 
 
 @router.get("/{year}/harvests", status_code=status.HTTP_200_OK,
-            response_model=Union[List[sc.HarvestResponseExtended]])
+            response_model=Union[List[sc.HarvestResponseExtended], List[sc.HarvestResponse]])
 def harvests_get(background_tasks: BackgroundTasks,
                  year: int,
                  user: m.User = Depends(get_current_active_user),

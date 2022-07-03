@@ -79,7 +79,7 @@ def harvests_get_employees(h_id: int,
                               **after_before_qp, **limit_offset_qp, **order_by_qp)
 
 
-@router.get("/{id}/workdays", status_code=status.HTTP_200_OK,
+@router.get("/{h_id}/workdays", status_code=status.HTTP_200_OK,
             response_model=List[sc.WorkdayResponse])
 def harvests_get_workdays(h_id: int,
                           user: m.User = Depends(get_current_active_user),
@@ -92,7 +92,7 @@ def harvests_get_workdays(h_id: int,
                              fruit=fruit, **price_harvested_qp, **limit_offset_qp, **order_by_qp)
 
 
-@router.post("/{id}/workdays", status_code=status.HTTP_201_CREATED,
+@router.post("/{h_id}/workdays", status_code=status.HTTP_201_CREATED,
              response_model=sc.WorkdayResponse)
 def harvests_post_workday(h_id: int,
                           workday_data: sc.WorkdayCreate,
