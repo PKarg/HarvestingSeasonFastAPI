@@ -86,6 +86,18 @@ class HarvestResponse(HarvestResponseBase):
         orm_mode = True
 
 
+class HarvestResponseExtended(HarvestResponse):
+    harvested_by_employees: decimal.Decimal
+    self_harvested: decimal.Decimal
+    avg_pay_per_kg: decimal.Decimal
+    total_profits: decimal.Decimal
+    harvested_by_emp_profits: decimal.Decimal
+    self_harvested_profits: decimal.Decimal
+    total_paid: decimal.Decimal
+    net_profit: decimal.Decimal
+    best_employee: dict
+
+
 # Inheriting validators for decimal values
 class HarvestUpdate(HarvestBase):
     fruit: Optional[str] = None
@@ -169,6 +181,14 @@ class EmployeeResponse(EmployeeBase):
 
     class Config:
         orm_mode = True
+
+
+class EmployeeResponseExtended(EmployeeResponse):
+    total_harvested: decimal.Decimal
+    total_earnings: decimal.Decimal
+    harvested_per_fruit: dict
+    earnings_per_fruit: dict
+    best_harvest: datetime.date
 
 
 # WORKDAYS -----------------------

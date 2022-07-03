@@ -134,7 +134,7 @@ def harvests_get_harvest_employees_summary(background_tasks: BackgroundTasks,
                                            data_format: str = Query('json', min_length=3, max_length=4)):
     if data_format not in ('json', 'csv'):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"Data format must be 'json' or 'csv', not {data_format}")
+                            detail=f"Data format must be 'json' or 'csv', not '{data_format}'")
     harvest = crud.harvests_get(db=db, user=user, id=h_id)[0]
     if not harvest.harvested_per_employee:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,

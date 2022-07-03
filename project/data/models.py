@@ -61,31 +61,31 @@ class Season(Base):
 
     @property
     def harvested_per_fruit(self):
-        return {f: sum([h.harvested for h in
-                        filter(lambda h: h.fruit == f, self.harvests)]) for f in self.fruits}
+        return {f: float(sum([h.harvested for h in
+                        filter(lambda h: h.fruit == f, self.harvests)])) for f in self.fruits}
 
     @property
     def value_per_fruit(self):
-        return {f: sum([h.harvested * h.price for h in
-                filter(lambda h: h.fruit == f, self.harvests)]) for f in self.fruits}
+        return {f: float(sum([h.harvested * h.price for h in
+                filter(lambda h: h.fruit == f, self.harvests)])) for f in self.fruits}
 
     @property
     def total_harvested_value(self):
-        return sum([h.harvested * h.price for h in self.harvests])
+        return float(sum([h.harvested * h.price for h in self.harvests]))
 
     @property
     def total_expenses_value(self):
-        return sum([e.amount for e in self.expenses])
+        return float(sum([e.amount for e in self.expenses]))
 
     @property
     def total_employee_payments(self):
-        return sum(e.total_earnings for e in self.employees)
+        return float(sum(e.total_earnings for e in self.employees))
 
     @property
     def best_harvest(self):
         best_h: Harvest = max(self.harvests, key=lambda h: h.harvested * h.price, default={})
         return {'id': best_h.id, 'date': best_h.date, 'fruit': best_h.fruit,
-                'harvested_value': best_h.harvested * best_h.price} if best_h \
+                'harvested_value': float(best_h.harvested * best_h.price)} if best_h \
             else {'id': 0, 'date': '', 'fruit': '', 'harvested_value': 0}
 
     @property
@@ -146,27 +146,28 @@ class Harvest(Base):
 
     @property
     def total_profits(self):
-        return self.harvested * self.price
+        return float(self.harvested * self.price)
 
     @property
     def harvested_by_employees(self):
-        return sum([w.harvested for w in self.workdays])
+        return float(sum([w.harvested for w in self.workdays]))
 
     @property
     def avg_pay_per_kg(self):
-        return sum([w.harvested * w.pay_per_kg for w in self.workdays]) / sum([w.harvested for w in self.workdays])
+        return float(sum([w.harvested * w.pay_per_kg for w in self.workdays]) /
+                     sum([w.harvested for w in self.workdays])) if self.workdays else 0
 
     @property
     def self_harvested(self):
-        return self.harvested - self.harvested_by_employees
+        return float(self.harvested - self.harvested_by_employees)
 
     @property
     def self_harvested_profits(self):
-        return self.self_harvested * self.price
+        return float(self.self_harvested * self.price)
 
     @property
     def net_profit(self):
-        return self.harvested * self.price - self.harvested_by_employees * self.avg_pay_per_kg
+        return float(self.harvested * self.price - self.harvested_by_employees * self.avg_pay_per_kg)
 
 
 class Expense(Base):
@@ -206,30 +207,30 @@ class Employee(Base):
 
     @property
     def harvested_per_fruit(self):
-        return {f: sum([w.harvested for w in
-                        filter(lambda w: w.fruit == f, self.workdays)]) for f in self.fruits}
+        return {f: float(sum([w.harvested for w in
+                         filter(lambda w: w.fruit == f, self.workdays)])) for f in self.fruits}
 
     @property
     def total_harvested(self):
-        return sum(w.harvested for w in self.workdays)
+        return float(sum(w.harvested for w in self.workdays))
 
     @property
     def earned_per_fruit(self):
-        return {f: sum([w.harvested*w.pay_per_kg for w in
-                        filter(lambda w: w.fruit == f, self.workdays)]) for f in self.fruits}
+        return {f: float(sum([w.harvested*w.pay_per_kg for w in
+                         filter(lambda w: w.fruit == f, self.workdays)])) for f in self.fruits}
 
     @property
     def total_earnings(self):
-        return sum(self.earned_per_fruit.values())
+        return float(sum(self.earned_per_fruit.values()))
 
     @property
     def harvests_history(self):
         h_history = [{"id": w.harvest.id,
                       "date": w.harvest.date,
                       "fruit": w.fruit,
-                      "harvested": w.harvested,
-                      "pay_per_kg": w.pay_per_kg,
-                      "earned": w.harvested * w.pay_per_kg} for w in self.workdays]
+                      "harvested": float(w.harvested),
+                      "pay_per_kg": float(w.pay_per_kg),
+                      "earned": float(w.harvested * w.pay_per_kg)} for w in self.workdays]
         return h_history
 
     @property
