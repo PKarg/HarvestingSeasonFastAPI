@@ -19,7 +19,8 @@ from .data.database import engine
 from .routers import seasons, harvests, employees, expenses, workdays, admin
 from .additional import ApiLogger
 
-# TODO add tests for existing endpoints
+# TODO add docstrings to dependencies and additional functions
+# TODO finish readme
 
 ApiLogger.create_main_logs_dir()
 Base.metadata.create_all(bind=engine)
