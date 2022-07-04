@@ -8,6 +8,12 @@ from project.data import models as m
 
 
 def validate_date_qp(qp: str) -> datetime.date:
+    """
+    Validate 'date' query parameter and return appropriate date if valid, else raise HTTP Exception
+
+    :params qp: date query parameter
+    :return: datetime.date
+    """
     try:
         return datetime.date.fromisoformat(qp)
     except ValueError as e:
@@ -17,7 +23,13 @@ def validate_date_qp(qp: str) -> datetime.date:
                             detail=str(e)) from e
 
 
-def validate_fruit_qp(qp: str) -> m.Fruit:
+def validate_fruit_qp(qp: str) -> m.Fruit.value:
+    """
+    Validate 'fruit' query parameter and return appropriate enum if valid, else raise HTTP Exception
+
+    :params qp: fruit query parameter
+    :return: Fruit.value
+    """
     try:
         fruit = m.Fruit(qp.lower())
         return fruit.value
@@ -39,7 +51,7 @@ def validate_date_in_season_bounds(o_start: datetime.date, s_start: datetime.dat
     :param o_name: name of object (for example "Harvest")
     :param o_end: end date for given object
     :param s_end: end date for given season
-    :return:
+    :return: None
     """
     if s_end:
         if o_end and not (s_start <= o_start <= o_end <= s_end):
@@ -89,7 +101,15 @@ def validate_date_in_bounds(start_date: datetime.date,
         return True
 
 
-def validate_order_by(order_by: str, order: str, orders: dict):
+def validate_order_by(order_by: str, order: str, orders: dict) -> None:
+    """
+    Validate query parameters related to ordering returned data. Raise appropriate exceptions if wrong type/format/data
+
+    :param order_by: parameter/column by which data should be ordered
+    :param order: desc(ending) or asc(ending) order od data
+    :param orders: dict of allowed parameters to order by for given endpoint ex: {'year': Season.year}
+    :return: None
+    """
     if not isinstance(orders, dict):
         raise TypeError(f"Orders must be passed as dict, not {type(orders)}")
     for k in orders.keys():

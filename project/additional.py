@@ -52,7 +52,7 @@ class ApiLogger:
                 logfile.write(msg)
 
 
-def create_temp_csv(data: list, filename: str, column_names: list[str]):
+def create_temp_csv(data: list, filename: str, column_names: list[str]) -> None:
     if not isinstance(data, list):
         raise TypeError(f"Input must be dict, got {type(data)}")
     if not isinstance(column_names, list):
