@@ -1,4 +1,5 @@
-###Harvesting Season API v1 - FastAPI
+Harvesting Season API v1 - FastAPI
+
 API made using python FastAPI framework for managing data related to seasonal fruit harvests. <br />
 Allows for management of data describing seasonal harvests, employees and expenses.
 
